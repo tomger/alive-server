@@ -1,0 +1,28 @@
+{
+  "name": "alive",
+  "version": "0.1.0",
+  "private": true,
+  "devDependencies": {
+    "react-scripts": "0.4.1"
+  },
+  "dependencies": {
+    "body-parser": "^1.15.2",
+    "express": "^4.14.0",
+    "foreman": "^2.0.0",
+    "nodemon": "^1.10.2",
+    "react": "^15.3.1",
+    "react-ace": "^3.5.0",
+    "react-dom": "^15.3.1"
+  },
+  "scripts": {
+    "start": "nf start -p 3000",
+    "client": "react-scripts start",
+    "server": "nodemon server",
+    "build": "react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": "./node_modules/react-scripts/config/eslint.js"
+  }
+}

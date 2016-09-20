@@ -1,0 +1,66 @@
+html,
+body {
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.App {
+}
+
+.App-logo {
+  animation: App-logo-spin infinite 20s linear;
+  height: 80px;
+}
+
+.App-header {
+  background-color: #222;
+  height: 150px;
+  padding: 20px;
+  color: white;
+}
+
+.App-intro {
+  font-size: large;
+}
+
+.editor {
+  flex: 1 1;
+}
+
+.statusbar {
+  background: #161714;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content:space-between;;
+  padding: 0 10px;
+  font-size: 14px;
+  line-height: 20px;
+  cursor: pointer;
+}
+.statusbar > a {
+  color: #8F908A;
+  text-decoration: none;
+}
+
+.statusbar-button {
+  color: #8F908A;
+  padding: 2px 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,.05);
+}
+
+.preview {
+  flex: 1 1;
+  background: white;
+  border: none;
+}
+
+@keyframes App-logo-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
