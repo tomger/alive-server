@@ -35,7 +35,7 @@ function animate(layer, options) {
     var event = Events.AnimationEnd;
     options = Object.assign({
       layer: layer
-    }, layer.animationOptions, options);
+    }, {}, options); // XXX
 
     var animation = new Animation(options);
     animation.start();

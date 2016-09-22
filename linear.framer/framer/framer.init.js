@@ -70,9 +70,16 @@ function _loadFile(file) {
 }
 
 function loadProject() {
-	Promise.all([_loadFile('modules/linear.sjs'), _loadFile('app.coffee' + location.search)])
+	var id = location.search.split(/[=&]/)[1];
+	console.log(id);
+	var snippet = 'var layers = Framer.Importer.load("imported/'+id+'@2x");';
+	var requests = [
+		_loadFile('modules/linear.sjs'),
+		_loadFile('app.coffee' + location.search)
+	];
+	Promise.all(requests)
 		.then(function(files){
-			var js = [files[0], CoffeeScript.compile(files[1])];
+			var js = [snippet, files[0], CoffeeScript.compile(files[1])];
 			require('builtin:apollo-sys').eval(js.join(''));
 		});
 }

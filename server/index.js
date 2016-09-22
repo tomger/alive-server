@@ -4,10 +4,11 @@ const util = require('util');
 const fs = require('fs');
 const path = require('path');
 const formidable = require('formidable');
-const port = 3001;
-const app = express();
 const bodyParser = require('body-parser');
 const mkdirp = require('mkdirp');
+
+const port = 3001;
+const app = express();
 const projectsDir = './projects/';
 
 app.use(function(req, res, next) {
@@ -19,7 +20,6 @@ app.use(function(req, res, next) {
 app.post('/upload', bodyParser.text({ type: 'text/plain' }), function(req, res) {
   var form = new formidable.IncomingForm();
   form.parse(req, function(err, fields, files) {
-    // console.log(util.inspect({fields: fields, files: files}));
     res.writeHead(200, {'content-type': 'text/plain'});
     res.write('received upload:\n\n');
     res.end(util.inspect({fields: fields, files: files}));
@@ -42,9 +42,31 @@ app.post('/upload', bodyParser.text({ type: 'text/plain' }), function(req, res) 
   });
 });
 
+app.get('/imported/:documentId@:size/images/:image', function(req, res) {
+  let documentId = String(parseInt(req.params.documentId, 10));
+  let filename = req.params.image.replace(/[^a-zA-Z0-9-_.]/g, '');
+  let imagePath = path.join(__dirname, '..', projectsDir, documentId, 'images', filename);
+  res.sendFile(imagePath);
+});
+
+app.get('/layers.js', function(req, res) {
+  try {
+    let documentId = String(parseInt(req.query.id, 10));
+    let coffeePath = path.join(projectsDir, documentId, 'layers.json');
+    res.write('window.__imported__ = []; window.__imported__["' + documentId + '@2x/layers.json.js"] = ');
+    fs.createReadStream(coffeePath).on('open', function() {
+      this.pipe(res);
+    }).on('error', function(error) {
+      console.error(error);
+    });
+  } catch (e) {
+    res.send('')
+  }
+});
+
 app.get('/app.coffee', function(req, res) {
   try {
-    var coffeePath = path.join(projectsDir, parseInt(req.query, 10), 'app.coffee');
+    let coffeePath = path.join(projectsDir, String(parseInt(req.query.id, 10)), 'app.coffee');
     fs.createReadStream(coffeePath).on('open', function() {
       this.pipe(res);
     }).on('error', function() {
@@ -56,16 +78,18 @@ app.get('/app.coffee', function(req, res) {
 });
 
 app.post('/app.coffee', bodyParser.text({ type: 'text/plain' }), function(req, res) {
-  console.log('writing coffee', req.body.length);
+  console.log('writing coffee', req.body.length, req.query);
   if(req.body.length === 0) {
     return;
   }
-  var coffeePath = path.join(projectsDir, parseInt(req.query, 10), 'app.coffee');
-  let stream = fs.createWriteStream(coffeePath));
-  stream.write(req.body);
-  stream.end();
-  res.status(200).send('thanks!');
-
+  let documentId = String(parseInt(req.query.id, 10));
+  let coffeePath = path.join(projectsDir, documentId, 'app.coffee');
+  mkdirp(path.join(projectsDir, documentId), function() {
+    let stream = fs.createWriteStream(coffeePath);
+    stream.write(req.body);
+    stream.end();
+    res.status(200).send('thanks!');
+  });
 });
 
 app.use('/', express.static('linear.framer'));
