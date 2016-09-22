@@ -12,11 +12,7 @@ class App extends Component {
     this.state = {
       iframeRefresh: 0
     };
-    this.uid = location.pathname.replace(/[\?\.\/]/g, '');
-    if (!this.uid) {
-      location.href = this.generateId();
-    }
-
+    this.documentId = location.pathname.replace(/[\?\.\/]/g, '');
     this.commands = [
       {
         name: "replace",
@@ -34,11 +30,6 @@ class App extends Component {
     this.fetchCode();
   }
 
-  generateId() {
-    let time = String(Date.now());
-    return '/' + Math.round(1000 * Math.random()) + time.substr(time.length - 6);
-  }
-
   loadPreview() {
     this.setState({iframeRefresh:Date.now()})
   }
@@ -49,7 +40,6 @@ class App extends Component {
     });
   }
   saveCode() {
-    console.log('saving', this.editedCode.length)
     this.setState({code: this.editedCode})
     return fetch(`//${location.hostname}:3001/app.coffee?id=${this.uid}`, {
       method: 'POST',
@@ -86,6 +76,13 @@ class App extends Component {
   }
 
   render() {
+    if (!this.documentId) {
+      return (
+        <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems:'center'}}>
+          <a href="alive-sketch-plugin.zip" style={{ fontWeight: 600, padding: '12px 15px', background: '#0076FF', color: '#fff', textDecoration: 'none', borderRadius: 3}}>Download Sketch Plugin</a>
+        </div>
+      );
+    }
     return (
       <div className="App">
         <div style={{display: 'flex', height: '100vh'}}>
@@ -109,7 +106,6 @@ class App extends Component {
              />
            <div className="statusbar">
               <a className="" href="https://framerjs.com/docs/" target="_blank">Framer Docs</a>
-              <a className="" href={this.generateId()} target="_blank">New Prototype</a>
               <div className="statusbar-button" title="Cmd + Shift + S" onClick={ e => this.saveAndReload() }>Save &amp; Run</div>
             </div>
            </div>
