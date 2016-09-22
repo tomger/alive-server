@@ -41,7 +41,7 @@ class App extends Component {
   }
   saveCode() {
     this.setState({code: this.editedCode})
-    return fetch(`//${location.hostname}:3001/app.coffee?id=${this.uid}`, {
+    return fetch(`//${location.hostname}:3001/app.coffee?id=${this.documentId}`, {
       method: 'POST',
       headers: {
         'Accept': 'text/plain',
@@ -55,7 +55,7 @@ class App extends Component {
   }
 
   fetchCode() {
-    return fetch(`//${location.hostname}:3001/app.coffee?id=${this.uid}`, {
+    return fetch(`//${location.hostname}:3001/app.coffee?id=${this.documentId}`, {
       accept: 'text/plain'
     }).then(response => {
       return response.text();
@@ -79,7 +79,7 @@ class App extends Component {
     if (!this.documentId) {
       return (
         <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems:'center'}}>
-          <a href="alive-sketch-plugin.zip" style={{ fontWeight: 600, padding: '12px 15px', background: '#0076FF', color: '#fff', textDecoration: 'none', borderRadius: 3}}>Download Sketch Plugin</a>
+          <a href={`//${location.hostname}:3001/Alive.sketchplugin.zip`} style={{ fontWeight: 600, padding: '12px 15px', background: '#0076FF', color: '#fff', textDecoration: 'none', borderRadius: 3}}>Download Sketch Plugin</a>
         </div>
       );
     }
@@ -111,7 +111,7 @@ class App extends Component {
            </div>
            <iframe
               className="preview"
-              src={`//${location.hostname}:3001/framer.html?id=${this.uid}&${this.state.iframeRefresh}`}></iframe>
+              src={`//${location.hostname}:3001/framer.html?id=${this.documentId}&${this.state.iframeRefresh}`}></iframe>
         </div>
       </div>
     );
