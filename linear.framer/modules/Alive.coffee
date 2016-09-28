@@ -1,17 +1,28 @@
-aliveImportId = location.search.split(/[=&]/)[1];
-window.layers = Framer.Importer.load("imported/#{aliveImportId}@2x")
+params = queryToObject(window.location.search);
+window.layers = Framer.Importer.load("imported/#{params.id}@2x")
 
-
-setupViewController = () ->
+initViewController = () ->
   home = null
+  if params.view?
+    console.log "set home", params.view
+    home = layers[params.view]
   for name, layer of layers
     if layer._info.kind is "artboard"
       home = layer if not home
-      layer.onLoad = (callback) =>
-        # play -> callback(layer)
-        Utils.delay 0, -> callback(layer)
+
+      do (layer) =>
+        layer.onLoad = (callback) =>
+          layer.onLoadCallback = callback
+
+        layer.init = () =>
+          if not layer.isInititalized and layer.onLoadCallback?
+            layer.onLoadCallback(layer, layers)
+            layer.isInititalized = yes
+
   window.views = new ViewController
     initialView: home
+  # hacky, but we need to wait until app.coffee has been run.
+  Utils.delay 0.1, -> home.init()
 
 
 contains = (rect, point) ->
@@ -75,5 +86,5 @@ document.body.addEventListener 'click', (event) ->
   event.stopPropagation()
 
 AliveLayerSelector()
-setupViewController()
+initViewController()
 console.log('Alive is initialized')

@@ -158,8 +158,8 @@ class ViewController extends Layer
 			@[name] = (newView, animationOptions = @animationOptions) =>
 
 				return if newView is @currentView
-
-
+				if newView.init?
+					newView.init()
 
 				# make sure the new layer is inside the viewcontroller
 				newView.parent = @
@@ -204,12 +204,14 @@ class ViewController extends Layer
 				else
 					hook = outgoing
 
+				# Begin Alive
 				sendMessage
 					type: 'navigatingTo'
 					view: @currentView.name
 				hook.on Events.AnimationEnd, =>
 					@hideAllLayersExceptFor(@currentView)
 					@emit(Events.ViewDidSwitch, @previousView, @currentView)
+				# End Alive
 
 
 		if options.initialViewName?

@@ -12,20 +12,19 @@ class App extends Component {
   constructor() {
     super();
     this.state = {
-      iframeRefresh: 0
+      iframeRefresh: 0,
+      initialView: 'home'
     };
     this.editor = null;
     this.documentId = location.pathname.replace(/[\?\.\/]/g, '');
+    this.initEditor();
   }
 
   componentDidMount() {
-    this.initEditor();
-
     this.fetchCode();
     this.fetchLayers();
 
     window.addEventListener('message', e => this.receiveMessage(e), false);
-
   }
 
   initEditor() {
@@ -60,7 +59,7 @@ class App extends Component {
         callback(null, [...this.viewCompletions, ...framerCompletions]);
       }
     }
-    console.log(langTools)
+
     langTools.setCompleters([this.staticWordCompleter]);
   }
 
@@ -94,7 +93,10 @@ class App extends Component {
   }
 
   loadPreview() {
-    this.setState({ iframeRefresh:Date.now() })
+    this.setState({
+      iframeRefresh: Date.now(),
+      initialView: this.state.selectedView
+    });
   }
 
   fetchLayers() {
@@ -152,6 +154,16 @@ class App extends Component {
 
   onChange(newValue) {
     this.editedCode = newValue;
+  }
+
+  getIframeSrc() {
+    let path = `//${location.hostname}:3001/framer.html`;
+
+    let id = this.documentId;
+    let view = this.state.initialView;
+    let cachebust = this.state.iframeRefresh;
+
+    return `${path}?id=${id}&view=${view}&cachebust=${cachebust}`;
   }
 
   onSelectView(view) {
@@ -236,10 +248,7 @@ class App extends Component {
               <div className="statusbar-button" title="Cmd + Shift + S" onClick={ e => this.saveAndReload() }>Save &amp; Run</div>
            </div> */}
            </div>
-           <iframe
-              ref="preview"
-              className="preview"
-              src={`//${location.hostname}:3001/framer.html?id=${this.documentId}&${this.state.iframeRefresh}`}></iframe>
+           <iframe ref="preview" className="preview" src={this.getIframeSrc()}></iframe>
         </div>
       </div>
     );

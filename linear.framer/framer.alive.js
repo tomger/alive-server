@@ -1,3 +1,14 @@
+function queryToObject(query) {
+	var rv = {};
+  var vars = query.substring(1).split('&');
+	var pair;
+  for (var i = 0; i < vars.length; i++) {
+    pair = vars[i].split('=');
+		rv[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1])
+  }
+	return rv;
+}
+
 function _loadFile(file) {
 	return new Promise(function(success) {
 		var request = new XMLHttpRequest();
@@ -10,11 +21,12 @@ function _loadFile(file) {
 }
 
 function loadProject() {
+	var params = queryToObject(window.location.search);
 	var requests = [
 		_loadFile('modules/linear.sjs'),
 		_loadFile('modules/ViewController.coffee'),
 		_loadFile('modules/Alive.coffee'),
-		_loadFile('app.coffee' + location.search)
+		_loadFile('app.coffee?id=' + params.id)
 	];
 	Promise.all(requests)
 		.then(function(files){
