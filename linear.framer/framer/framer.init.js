@@ -56,37 +56,6 @@ function showFileLoadingAlert() {
 	showAlert(html)
 }
 
-/////////// Start custom Alive code ///////////
-
-function _loadFile(file) {
-	return new Promise(function(success) {
-		var request = new XMLHttpRequest();
-		request.open("GET", file);
-		request.onload = function() {
-			success(request.responseText);
-		}
-		request.send();
-	})
-}
-
-function loadProject() {
-	var id = location.search.split(/[=&]/)[1];
-	console.log(id);
-	var snippet = 'var layers = Framer.Importer.load("imported/'+id+'@2x");';
-	var requests = [
-		_loadFile('modules/linear.sjs'),
-		_loadFile('app.coffee' + location.search)
-	];
-	Promise.all(requests)
-		.then(function(files){
-			var js = [snippet, files[0], CoffeeScript.compile(files[1])];
-			require('builtin:apollo-sys').eval(js.join(''));
-		});
-}
-
-/////////// End custom Alive code ///////////
-
-
 function setDefaultPageTitle() {
 	// If no title was set we set it to the project folder name so
 	// you get a nice name on iOS if you bookmark to desktop.
@@ -116,6 +85,7 @@ function init() {
 		return showFileLoadingAlert()
 	}
 
+	// Calls Alive initializers
 	loadProject()
 
 }

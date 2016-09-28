@@ -43,17 +43,20 @@ app.post('/upload', bodyParser.text({ type: 'text/plain' }), function(req, res) 
 });
 
 app.get('/imported/:documentId@:size/images/:image', function(req, res) {
+  // Cache-Control: max-age=31556926
   let documentId = String(parseInt(req.params.documentId, 10));
   let filename = req.params.image.replace(/[^a-zA-Z0-9-_.]/g, '');
   let imagePath = path.join(__dirname, '..', projectsDir, documentId, 'images', filename);
   res.sendFile(imagePath);
 });
 
-app.get('/layers.js', function(req, res) {
+app.get('/layers.:format', function(req, res) {
   try {
     let documentId = String(parseInt(req.query.id, 10));
     let coffeePath = path.join(projectsDir, documentId, 'layers.json');
-    res.write('window.__imported__ = []; window.__imported__["' + documentId + '@2x/layers.json.js"] = ');
+    if (req.params.format === 'js') {
+      res.write('window.__imported__ = []; window.__imported__["' + documentId + '@2x/layers.json.js"] = ');
+    }
     fs.createReadStream(coffeePath).on('open', function() {
       this.pipe(res);
     }).on('error', function(error) {

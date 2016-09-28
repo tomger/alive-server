@@ -42,6 +42,18 @@ body {
   line-height: 20px;
   cursor: pointer;
 }
+
+.ace_gutter-cell {
+  font-size: 12px;
+  line-height: 24px;
+  opacity: 0.3;
+}
+
+.pagelist {
+  background: #2F3129;
+  border-right: 1px solid #21231e;
+}
+
 .statusbar > a {
   color: #8F908A;
   text-decoration: none;
@@ -58,6 +70,41 @@ body {
   flex: 1 1;
   background: white;
   border: none;
+}
+
+
+.Thumbnail {
+  width: 100px;
+  padding: 16px 16px 0 16px;
+  display: inline;
+  text-align: center;
+}
+
+.Thumbnail--selected {
+
+}
+
+.Thumbnail__image {
+  min-width: 20px;
+  min-height: 20px;
+  background-size: cover;
+  background-repeat: no-repeat;
+  height: 170px;
+  display: block;
+  border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .3)
+}
+
+.Thumbnail--selected .Thumbnail__image {
+  box-shadow: 0 0 0 2px #F8E71C, 0 1px 3px rgba(0, 0, 0, .3)
+
+}
+
+.Thumbnail__title {
+  margin-top: 10px;
+  color: rgba(255, 255, 255, .4);
+  font-size: 14px;
+  font-family: 'Monaco';
 }
 
 @keyframes App-logo-spin {

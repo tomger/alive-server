@@ -1,10 +1,12 @@
 import React, { Component } from 'react';
-// import brace from 'brace';
 import AceEditor from 'react-ace';
+import ace from 'brace';
 import 'brace/mode/coffee';
 import 'brace/theme/monokai';
+import 'brace/ext/language_tools';
 
 import './App.css';
+import words from './words';
 
 class App extends Component {
   constructor() {
@@ -12,7 +14,21 @@ class App extends Component {
     this.state = {
       iframeRefresh: 0
     };
+    this.editor = null;
     this.documentId = location.pathname.replace(/[\?\.\/]/g, '');
+  }
+
+  componentDidMount() {
+    this.initEditor();
+
+    this.fetchCode();
+    this.fetchLayers();
+
+    window.addEventListener('message', e => this.receiveMessage(e), false);
+
+  }
+
+  initEditor() {
     this.commands = [
       {
         name: "replace",
@@ -25,13 +41,76 @@ class App extends Component {
         }
       }
     ];
+
+    let langTools = ace.acequire('ace/ext/language_tools');
+    let framerCompletions = words
+      .split('\n')
+      .filter(line => line.indexOf('#') !== 0)
+      .map(line => line.split(' '))
+      .reduce((prev, curr) => prev.concat(curr))
+      .filter((word, index, words) => words.indexOf(word) === index)
+      .map(word => { return {
+        caption: word,
+        value: word,
+        meta: ''
+      }});
+
+    this.staticWordCompleter = {
+      getCompletions: (editor, session, pos, prefix, callback) => {
+        callback(null, [...this.viewCompletions, ...framerCompletions]);
+      }
+    }
+    console.log(langTools)
+    langTools.setCompleters([this.staticWordCompleter]);
   }
-  componentDidMount() {
-    this.fetchCode();
+
+  receiveMessage(event) {
+    let message = JSON.parse(event.data);
+    if (message.type === 'addLink') {
+      this.addLink(message.target)
+    } else if (message.type === 'navigatingTo') {
+      this.focusView(message.view);
+    }
+  }
+
+  addLink(target) {
+    let code = this.state.code;
+    let snippet = `\n\nlayers.${target}.onClick ->\n\tviews.slideInRight(layers.home)`;
+    code += snippet;
+    this.editedCode = code;
+    this.setState({ code });
+
+    let lines = code.split('\n');
+    let position = lines.length;
+    let cursor = lines[lines.length - 1].length;
+    this.editor.resize(true);
+    this.editor.scrollToLine(position, true, true, function () {});
+    this.editor.gotoLine(position, cursor, true);
+    this.editor.focus();
+  }
+
+  focusView(view) {
+    this.setState({ selectedView: view });
   }
 
   loadPreview() {
-    this.setState({iframeRefresh:Date.now()})
+    this.setState({ iframeRefresh:Date.now() })
+  }
+
+  fetchLayers() {
+    return fetch(`//${location.hostname}:3001/layers.json?id=${this.documentId}`, {
+    }).then(response => {
+      return response.json();
+    }).then(layers => {
+      this.setState({layers})
+      this.viewCompletions = layers.map(layer => {
+        return {
+          caption: `layers.${layer.name}`,
+          value: `layers.${layer.name}`,
+          meta: "View"
+        };
+      })
+    });
   }
 
   saveAndReload() {
@@ -75,6 +154,16 @@ class App extends Component {
     this.editedCode = newValue;
   }
 
+  onSelectView(view) {
+    let message = {
+      type: 'show',
+      view: view.name
+    };
+
+    let targetOrigin = '*';
+    this.refs.preview.contentWindow.postMessage(JSON.stringify(message), targetOrigin);
+  }
+
   render() {
     if (!this.documentId) {
       return (
@@ -83,9 +172,42 @@ class App extends Component {
         </div>
       );
     }
+
+    let pages;
+    if (this.state.layers) {
+      pages = this.state.layers.filter(layer =>
+        layer.kind === 'artboard'
+      ).map(artboard => {
+          let style = {
+            backgroundColor: artboard.backgroundColor,
+            backgroundImage: `url(//${location.hostname}:3001/imported/${this.documentId}@2x/images/${artboard.objectId}.png)`
+          };
+          return (
+            <div key={artboard.name}
+              className={['Thumbnail', this.state.selectedView === artboard.name ? 'Thumbnail--selected' : undefined].join(' ')}
+              onClick={e => this.onSelectView(artboard)}>
+              <div className="Thumbnail__image" style={ style }></div>
+              <div className="Thumbnail__title">
+                {artboard.name}
+              </div>
+            </div>
+          )
+        }
+      );
+    }
+
+
     return (
       <div className="App">
         <div style={{display: 'flex', height: '100vh'}}>
+          <div className="pagelist" style={{
+            display: 'flex',
+            flex: '0 0 132px',
+            flexDirection: 'column',
+            overflowX: 'hidden',
+            overflowY: 'auto'}}>
+            {pages}
+          </div>
           <div style={{ display: 'flex', flex: '1 1', flexDirection: 'column'}}>
             <AceEditor
                className="editor"
@@ -94,22 +216,28 @@ class App extends Component {
                mode="coffee"
                ref="ace"
                theme="monokai"
-               fontSize={16}
+               fontSize={14}
                value={this.state.code}
                onChange={e => this.onChange(e)}
                commands={this.commands}
                editorProps={{$blockScrolling: true}}
                onLoad={(editor) => {
+                 this.editor = editor;
                  editor.focus();
                  editor.getSession().setUseWrapMode(true);
+                 editor.setOptions({
+                  //  enableBasicAutocompletion: true,
+                   enableLiveAutocompletion: true
+                 });
                }}
              />
-           <div className="statusbar">
+           {/* <div className="statusbar">
               <a className="" href="https://framerjs.com/docs/" target="_blank">Framer Docs</a>
               <div className="statusbar-button" title="Cmd + Shift + S" onClick={ e => this.saveAndReload() }>Save &amp; Run</div>
-            </div>
+           </div> */}
            </div>
            <iframe
+              ref="preview"
               className="preview"
               src={`//${location.hostname}:3001/framer.html?id=${this.documentId}&${this.state.iframeRefresh}`}></iframe>
         </div>
