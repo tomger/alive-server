@@ -51,7 +51,11 @@ AliveLayerSelector = () ->
     opacity: .9
     style:
       border: '2px solid rgba(200, 0, 0, 0.9)'
-      pointerEvents: 'none'
+      # pointerEvents: 'none'
+  highlighter.onClick ->
+    sendMessage
+      type: 'addLink'
+      target: currentLayer.name
 
   document.body.addEventListener 'mousemove', (event) ->
     if not event.metaKey
@@ -76,14 +80,14 @@ AliveLayerSelector = () ->
     # console.log((matches.map (m) -> m.name).join())
 
 
-document.body.addEventListener 'click', (event) ->
-  if not event.metaKey
-    return
-  matches = findLayersForPoint window.layers,
-    x: event.pageX
-    y: event.pageY
-  console.log matches
-  event.stopPropagation()
+# document.body.addEventListener 'click', (event) ->
+#   if not event.metaKey
+#     return
+#   matches = findLayersForPoint window.layers,
+#     x: event.pageX
+#     y: event.pageY
+#   console.log matches
+#   event.stopPropagation()
 
 AliveLayerSelector()
 initViewController()

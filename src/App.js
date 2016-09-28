@@ -8,6 +8,40 @@ import 'brace/ext/language_tools';
 import './App.css';
 import words from './words';
 
+function parseCode (code) {
+  // Really really dumb parsing of the view tree code
+  let rv = {};
+  let currentBlock = 'global';
+  let lines = code.split('\n');
+  lines.forEach(line => {
+    let matches = /^layers.(.*?).onLoad/.exec(line);
+    if (matches) {
+      currentBlock = matches[1];
+      return; // skip onload line
+    } else if (line.indexOf('    ') === 0) {
+      line = line.substr(4); // cut off tab
+    }
+    rv[currentBlock] = rv[currentBlock] || [];
+    rv[currentBlock].push(line);
+  });
+  for (let view in rv) {
+    rv[view] = rv[view].join('\n');
+  }
+  return rv;
+}
+
+function stringifyCode(object) {
+  let rv = [object['global'] || ''];
+  for (let view in object) {
+    if (view === 'global') {
+      continue;
+    }
+    rv.push(`layers.${view}.onLoad ->`);
+    rv.push(object[view].split('\n').map(line => `    ${line}`).join('\n'));
+  }
+  return rv.join('\n')
+}
+
 class App extends Component {
   constructor() {
     super();
@@ -73,10 +107,11 @@ class App extends Component {
   }
 
   addLink(target) {
-    let code = this.state.code;
-    let snippet = `\n\nlayers.${target}.onClick ->\n\tviews.slideInRight(layers.home)`;
+    let snippet = `\nlayers.${target}.onClick ->\n\tviews.pushIn(layers.home)`;
+
+    let code = this.codeTree[this.state.selectedView] || '';
     code += snippet;
-    this.editedCode = code;
+    this.codeTree[this.state.selectedView] = code;
     this.setState({ code });
 
     let lines = code.split('\n');
@@ -89,7 +124,10 @@ class App extends Component {
   }
 
   focusView(view) {
-    this.setState({ selectedView: view });
+    this.setState({
+      selectedView: view,
+      code: this.codeTree[view]
+    });
   }
 
   loadPreview() {
@@ -120,18 +158,22 @@ class App extends Component {
       this.loadPreview();
     });
   }
+
   saveCode() {
-    this.setState({code: this.editedCode})
+    this.setState({code: this.codeTree[this.state.selectedView]});
+    let code = stringifyCode(this.codeTree);
+    // console.log(code)
+    // return;
     return fetch(`//${location.hostname}:3001/app.coffee?id=${this.documentId}`, {
       method: 'POST',
       headers: {
         'Accept': 'text/plain',
       },
-      body: this.editedCode
+      body: code
     }).then(response => {
       return response.text();
     }).then(code => {
-      console.log(code);
+
     });
   }
 
@@ -142,9 +184,9 @@ class App extends Component {
       return response.text();
     }).then(code => {
       console.log('loaded code');
-      this.editedCode = code;
+      this.codeTree = parseCode(code);
       this.setState({
-        code: code
+        code: this.codeTree[this.state.selectedView]
       });
       var undo_manager = this.refs.ace.editor.getSession().getUndoManager();
       undo_manager.reset();
@@ -153,7 +195,7 @@ class App extends Component {
   }
 
   onChange(newValue) {
-    this.editedCode = newValue;
+    this.codeTree[this.state.selectedView] = newValue;
   }
 
   getIframeSrc() {
