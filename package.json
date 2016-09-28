@@ -19,7 +19,7 @@
   "scripts": {
     "start": "nf start -p 3000",
     "client": "react-scripts start",
-    "server": "nodemon server  --ignore './projects/*'",
+    "server": "nodemon server  --ignore './projects/*/**'  --ignore 'projects/'",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject"
