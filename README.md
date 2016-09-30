@@ -14,3 +14,6 @@ https://github.com/abynim/Sketch-Headers/blob/master/Headers/MSDocument.h
 defaults write ~/Library/Preferences/com.bohemiancoding.sketch3.plist AlwaysReloadScript -bool YES
 
 http://developer.sketchapp.com/introduction/preferences/
+
+
+EC2: sudo iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 8080
