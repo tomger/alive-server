@@ -25,7 +25,9 @@ function parseCode (code) {
     rv[currentBlock].push(line);
   });
   for (let view in rv) {
-    rv[view] = rv[view].join('\n');
+    if ({}.hasOwnProperty.call(rv, view)) {
+      rv[view] = rv[view].join('\n');
+    }
   }
   return rv;
 }
@@ -138,7 +140,7 @@ class App extends Component {
   }
 
   fetchLayers() {
-    return fetch(`//${location.hostname}:3001/layers.json?id=${this.documentId}`, {
+    return fetch(`/layers.json?id=${this.documentId}`, {
     }).then(response => {
       return response.json();
     }).then(layers => {
@@ -164,7 +166,7 @@ class App extends Component {
     let code = stringifyCode(this.codeTree);
     // console.log(code)
     // return;
-    return fetch(`//${location.hostname}:3001/app.coffee?id=${this.documentId}`, {
+    return fetch(`/app.coffee?id=${this.documentId}`, {
       method: 'POST',
       headers: {
         'Accept': 'text/plain',
@@ -178,7 +180,7 @@ class App extends Component {
   }
 
   fetchCode() {
-    return fetch(`//${location.hostname}:3001/app.coffee?id=${this.documentId}`, {
+    return fetch(`/app.coffee?id=${this.documentId}`, {
       accept: 'text/plain'
     }).then(response => {
       return response.text();
@@ -199,7 +201,7 @@ class App extends Component {
   }
 
   getIframeSrc() {
-    let path = `//${location.hostname}:3001/framer.html`;
+    let path = `/framer.html`;
 
     let id = this.documentId;
     let view = this.state.initialView;
@@ -222,7 +224,7 @@ class App extends Component {
     if (!this.documentId) {
       return (
         <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems:'center'}}>
-          <a href={`//${location.hostname}:3001/Alive.sketchplugin.zip`} style={{ fontWeight: 600, padding: '12px 15px', background: '#0076FF', color: '#fff', textDecoration: 'none', borderRadius: 3}}>Download Sketch Plugin</a>
+          <a href={`/Alive.sketchplugin.zip`} style={{ fontWeight: 600, padding: '12px 15px', background: '#0076FF', color: '#fff', textDecoration: 'none', borderRadius: 3}}>Download Sketch Plugin</a>
         </div>
       );
     }
@@ -234,7 +236,7 @@ class App extends Component {
       ).map(artboard => {
           let style = {
             backgroundColor: artboard.backgroundColor,
-            backgroundImage: `url(//${location.hostname}:3001/imported/${this.documentId}@2x/images/${artboard.objectId}.png)`
+            backgroundImage: `url(/imported/${this.documentId}@2x/images/${artboard.objectId}.png)`
           };
           return (
             <div key={artboard.name}

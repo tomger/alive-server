@@ -2,6 +2,8 @@ const express = require('express');
 const url = require('url');
 const util = require('util');
 const fs = require('fs');
+const http = require('http');
+const httpProxy = require('http-proxy');
 const path = require('path');
 const formidable = require('formidable');
 const bodyParser = require('body-parser');
@@ -10,12 +12,22 @@ const mkdirp = require('mkdirp');
 const port = 3001;
 const app = express();
 const projectsDir = './projects/';
+const foreverMaxAge = 31556926;
 
-app.use(function(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-  next();
-});
+let server = http.createServer(app);
+let proxy = httpProxy.createProxyServer();
+
+app.server = server;
+app.server.listen(port);
+
+function pathExists(path) {
+  try {
+    fs.accessSync(path, fs.F_OK);
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
 
 app.post('/upload', bodyParser.text({ type: 'text/plain' }), function(req, res) {
   var form = new formidable.IncomingForm();
@@ -95,8 +107,28 @@ app.post('/app.coffee', bodyParser.text({ type: 'text/plain' }), function(req, r
   });
 });
 
-app.use('/', express.static('linear.framer'));
 
-app.listen(port, function(){
-  console.log('listening on ' + port);
-});
+// Proxy for the React dev environment. Websocket & JS Bundle:
+if (pathExists('build')) {
+  console.log('Production');
+  app.use(/\/\d+/, express.static('build/index.html'));
+  app.use('/', express.static('build', { maxAge: foreverMaxAge}));
+  app.use('/', express.static('linear.framer'));
+} else {
+  console.log('Development');
+  app.use('/', express.static('linear.framer'));
+  // app.get('/static/js/bundle.js', function(req, res) {
+  app.get('*', function(req, res) {
+    console.log(req.path)
+    proxy.web(req, res, {
+      target: 'http://localhost:3000'
+    });
+  });
+
+  // http://localhost:3001/sockjs-node/info?t=1475265053147
+  app.server.on('upgrade', function (req, socket, head) {
+    proxy.ws(req, socket, {
+      target: 'http://localhost:3000'
+    });
+  });
+}

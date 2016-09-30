@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "devDependencies": {
+    "http-proxy": "^1.15.1",
     "react-scripts": "0.4.1"
   },
   "dependencies": {
@@ -19,7 +20,7 @@
   "scripts": {
     "start": "nf start -p 3000",
     "client": "react-scripts start",
-    "server": "nodemon server  --ignore './projects/*/**'  --ignore 'projects/'",
+    "server": "nodemon server",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject"
