@@ -4,23 +4,25 @@
   "private": true,
   "devDependencies": {
     "http-proxy": "^1.15.1",
-    "react-scripts": "0.4.1"
+    "react-scripts": "0.4.1",
+    "foreman": "^2.0.0",
+    "nodemon": "^1.10.2"
   },
   "dependencies": {
-    "body-parser": "^1.15.2",
     "express": "^4.14.0",
-    "foreman": "^2.0.0",
     "formidable": "^1.0.17",
     "mkdirp": "^0.5.1",
-    "nodemon": "^1.10.2",
     "react": "^15.3.1",
     "react-ace": "^3.5.0",
     "react-dom": "^15.3.1"
   },
   "scripts": {
+    "production": "node server",
+
     "start": "nf start -p 3000",
-    "client": "react-scripts start",
     "server": "nodemon server",
+
+    "client": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject"

@@ -164,14 +164,11 @@ class App extends Component {
   saveCode() {
     this.setState({code: this.codeTree[this.state.selectedView]});
     let code = stringifyCode(this.codeTree);
-    // console.log(code)
-    // return;
+    let formData  = new FormData();
+    formData.append('code', code);
     return fetch(`/app.coffee?id=${this.documentId}`, {
       method: 'POST',
-      headers: {
-        'Accept': 'text/plain',
-      },
-      body: code
+      body: formData
     }).then(response => {
       return response.text();
     }).then(code => {

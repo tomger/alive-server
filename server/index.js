@@ -6,7 +6,6 @@ const http = require('http');
 const httpProxy = require('http-proxy');
 const path = require('path');
 const formidable = require('formidable');
-const bodyParser = require('body-parser');
 const mkdirp = require('mkdirp');
 
 const port = 3001;
@@ -29,7 +28,7 @@ function pathExists(path) {
   }
 }
 
-app.post('/upload', bodyParser.text({ type: 'text/plain' }), function(req, res) {
+app.post('/upload', function(req, res) {
   var form = new formidable.IncomingForm();
   form.parse(req, function(err, fields, files) {
     res.writeHead(200, {'content-type': 'text/plain'});
@@ -92,18 +91,24 @@ app.get('/app.coffee', function(req, res) {
   }
 });
 
-app.post('/app.coffee', bodyParser.text({ type: 'text/plain' }), function(req, res) {
-  console.log('writing coffee', req.body.length, req.query);
-  if(req.body.length === 0) {
-    return;
-  }
-  let documentId = String(parseInt(req.query.id, 10));
-  let coffeePath = path.join(projectsDir, documentId, 'app.coffee');
-  mkdirp(path.join(projectsDir, documentId), function() {
-    let stream = fs.createWriteStream(coffeePath);
-    stream.write(req.body);
-    stream.end();
-    res.status(200).send('thanks!');
+app.post('/app.coffee', function(req, res) {
+  var form = new formidable.IncomingForm();
+  form.parse(req, function(err, fields, files) {
+    if(fields.code.length === 0) {
+      return;
+    }
+
+    let code = fields.code;
+    let documentId = String(parseInt(req.query.id, 10));
+    let coffeePath = path.join(projectsDir, documentId, 'app.coffee');
+
+    console.log('writing coffee', code.length, documentId);
+    mkdirp(path.join(projectsDir, documentId), function() {
+      let stream = fs.createWriteStream(coffeePath);
+      stream.write(code);
+      stream.end();
+      res.status(200).send('thanks!');
+    });
   });
 });
 
