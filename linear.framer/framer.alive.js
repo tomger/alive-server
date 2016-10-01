@@ -23,7 +23,7 @@ function _loadFile(file) {
 function loadProject() {
 	var params = queryToObject(window.location.search);
 	var requests = [
-		_loadFile('modules/linear.sjs'),
+		_loadFile('linear.sjs'),
 		_loadFile('modules/ViewController.coffee'),
 		_loadFile('modules/Alive.coffee'),
 		_loadFile('app.coffee?id=' + params.id)
@@ -38,7 +38,7 @@ function loadProject() {
 					files[3]
 				].join('\n'))
 			];
-			window.theCompiledAlive = js.join('');
+			window.debugCompiledAlive = js.join('');
 			// require('builtin:apollo-sys').eval(js.join(''));
 			eval(js.join(''));
       ready();
