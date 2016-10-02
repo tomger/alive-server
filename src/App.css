@@ -49,6 +49,22 @@ body {
   opacity: 0.3;
 }
 
+.ace_punctuation + .ace_identifier {
+  color: #66D9EF;
+}
+
+.ace_editor {
+  font-weight: 500;
+  line-height: 1.5em;
+}
+.ace-monokai .ace_support.ace_constant,
+.ace-monokai .ace_support.ace_function,
+.ace-monokai .ace_storage.ace_type {
+  color: #F92672 !important;
+  font-style: normal !important;
+}
+
+
 .pagelist {
   background: #2F3129;
   border-right: 1px solid #21231e;
