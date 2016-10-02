@@ -44,16 +44,26 @@ function stringifyCode(object) {
   return rv.join('\n')
 }
 
+function debounce(fn, delay) {
+  let timer = null;
+  return function (...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      fn.call(this, ...args);
+    }, delay);
+  };
+}
+
 class App extends Component {
   constructor() {
     super();
     this.state = {
-      iframeRefresh: 0,
       initialView: 'home'
     };
     this.editor = null;
     this.documentId = location.pathname.replace(/[\?\.\/]/g, '');
     this.initEditor();
+    this.debouncedUpdatePreview = debounce(this.updatePreview, 300);
   }
 
   componentDidMount() {
@@ -72,7 +82,7 @@ class App extends Component {
           mac: "Command-Shift-S"
         },
         exec: editor => {
-          this.saveAndReload();
+          this.saveCode();
         }
       }
     ];
@@ -99,15 +109,6 @@ class App extends Component {
     langTools.setCompleters([this.staticWordCompleter]);
   }
 
-  receiveMessage(event) {
-    let message = JSON.parse(event.data);
-    if (message.type === 'addLink') {
-      this.addLink(message.target)
-    } else if (message.type === 'navigatingTo') {
-      this.focusView(message.view);
-    }
-  }
-
   addLink(target) {
     let snippet = `\nlayers.${target}.onClick ->\n\tviews.pushIn(layers.home)`;
 
@@ -132,12 +133,17 @@ class App extends Component {
     });
   }
 
-  loadPreview() {
+  onSelectView(view) {
     this.setState({
-      iframeRefresh: Date.now(),
-      initialView: this.state.selectedView
+      selectedView: view.name,
+      code: this.codeTree[view.name]
+    });
+    this.postMessage({
+      type: 'show',
+      view: view.name
     });
   }
+
 
   fetchLayers() {
     return fetch(`/layers.json?id=${this.documentId}`, {
@@ -152,12 +158,6 @@ class App extends Component {
           meta: "View"
         };
       })
-    });
-  }
-
-  saveAndReload() {
-    this.saveCode().then(_ => {
-      this.loadPreview();
     });
   }
 
@@ -193,29 +193,41 @@ class App extends Component {
     });
   }
 
+  updatePreview() {
+    let code = stringifyCode(this.codeTree);
+    this.postMessage({
+      type: 'change:app.coffee',
+      code: code,
+      view: this.state.selectedView
+    });
+  }
+
   onChange(newValue) {
     this.codeTree[this.state.selectedView] = newValue;
+    this.debouncedUpdatePreview();
   }
 
-  getIframeSrc() {
-    let path = `/framer.html`;
-
-    let id = this.documentId;
-    let view = this.state.initialView;
-    let cachebust = this.state.iframeRefresh;
-
-    return `${path}?id=${id}&view=${view}&cachebust=${cachebust}`;
-  }
-
-  onSelectView(view) {
-    let message = {
-      type: 'show',
-      view: view.name
-    };
-
+  // Talk to preview
+  postMessage(message) {
     let targetOrigin = '*';
+    if (!this.refs.preview) {
+      console.error('No preview iFrame');
+      return;
+    }
     this.refs.preview.contentWindow.postMessage(JSON.stringify(message), targetOrigin);
   }
+
+  // Listen to preview
+  receiveMessage(event) {
+    let message = JSON.parse(event.data);
+    if (message.type === 'addLink') {
+      this.addLink(message.target);
+      this.debouncedUpdatePreview();
+    } else if (message.type === 'navigatingTo') {
+      this.focusView(message.view);
+    }
+  }
+
 
   render() {
     if (!this.documentId) {
@@ -289,7 +301,7 @@ class App extends Component {
               <div className="statusbar-button" title="Cmd + Shift + S" onClick={ e => this.saveAndReload() }>Save &amp; Run</div>
            </div> */}
            </div>
-           <iframe ref="preview" className="preview" src={this.getIframeSrc()}></iframe>
+           <iframe ref="preview" className="preview" src={`/framer.html?id=${this.documentId}`}></iframe>
         </div>
       </div>
     );
