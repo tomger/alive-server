@@ -190,7 +190,7 @@ class ViewController extends Layer
 		else if animationOptions.transition
 			name = animationOptions.transition
 		else
-			name = 'slideIn'
+			name = 'pushIn'
 		animProps = @transitions[name]
 
 		console.log(JSON.stringify(animProps), JSON.stringify(animationOptions))

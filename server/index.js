@@ -131,18 +131,20 @@ app.post('/app.coffee', function(req, res) {
 });
 
 
-app.use('/farmer.js', express.static('linear.framer/farmer.js', { maxAge: foreverMaxAge}));
-app.use('/coffee-script.js', express.static('linear.framer/coffee-script.js', { maxAge: foreverMaxAge}));
+app.use('/farmer.js', express.static('framer/farmer.js', { maxAge: foreverMaxAge}));
+app.use('/coffee-script.js', express.static('framer/coffee-script.js', { maxAge: foreverMaxAge}));
+// XXX hack cause framer's hardcoded to get cursors here
+app.use('/framer/', express.static('framer'));
 // Proxy for the React dev environment. Websocket & JS Bundle:
 if (pathExists('build')) {
   console.log('Production');
   app.use(/\/\d+/, express.static('build/index.html'));
   app.use('/', express.static('build', { maxAge: foreverMaxAge}));
 
-  app.use('/', express.static('linear.framer'));
+  app.use('/', express.static('framer'));
 } else {
   console.log('Development');
-  app.use('/', express.static('linear.framer'));
+  app.use('/', express.static('framer'));
   // app.get('/static/js/bundle.js', function(req, res) {
   app.get('*', function(req, res) {
     console.log(req.path)
