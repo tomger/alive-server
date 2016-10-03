@@ -50,10 +50,10 @@ body {
 
 .toolbar__button {
   text-decoration: none;
-  color: #c1aea7;
+  color: #c1c1c1;
   cursor: pointer;
   margin: 0 2px;
-  padding: 2px 8px;
+  padding: 6px 12px;
   border-radius: 3px;
 }
 
@@ -80,9 +80,9 @@ body {
 
 .ace_editor {
   font-weight: 400;
-  font-size: 14.5px;
+  font-size: 16px;
   line-height: 1.6em;
-  font-family: 'Roboto Mono';
+  /*font-family: 'Roboto Mono';*/
 }
 .ace-monokai .ace_support.ace_constant,
 .ace-monokai .ace_support.ace_function,
@@ -106,7 +106,6 @@ body {
 .Thumbnail {
   width: 80px;
   padding: 16px 16px 0 16px;
-  display: inline;
   text-align: center;
 }
 

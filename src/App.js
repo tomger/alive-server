@@ -1,5 +1,7 @@
 import React, { Component } from 'react';
 import AceEditor from 'react-ace';
+import Modal from 'react-modal';
+
 import ace from 'brace';
 import 'brace/mode/coffee';
 import 'brace/theme/monokai';
@@ -7,6 +9,30 @@ import 'brace/ext/language_tools';
 
 import './App.css';
 import words from './words';
+
+const modalStyle = {
+  overlay : {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    zIndex: 1
+  },
+  content : {
+    width: 600,
+    transform: 'translate(-50%, -50%)',
+    background: 'white',
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    padding: '20px',
+    outline: 0,
+    borderRadius: 4,
+    boxShadow: '0 10px 16px rgba(0,0,0,.3)'
+  }
+}
 
 function parseCode (code) {
   // Really really dumb parsing of the view tree code
@@ -58,7 +84,8 @@ class App extends Component {
   constructor() {
     super();
     this.state = {
-      initialView: 'home'
+      initialView: 'home',
+      modalIsOpen: false
     };
     this.editor = null;
     this.documentId = location.pathname.replace(/[\?\.\/]/g, '');
@@ -71,7 +98,7 @@ class App extends Component {
     this.fetchLayers();
 
     window.addEventListener('keydown', e => {
-      if ((e.metaKey || e.ctrlKey) && e.keyCode == 83) {
+      if ((e.metaKey || e.ctrlKey) && e.keyCode === 83) {
         this.saveCode();
         e.preventDefault();
         return false;
@@ -105,10 +132,13 @@ class App extends Component {
     langTools.setCompleters([this.staticWordCompleter]);
   }
 
-  addLink(target) {
-    let snippet = `\nlayers.${target}.onClick ->\n\tviews.pushIn(layers.home)`;
+  addLink(linkTarget, linkView) {
+    let snippet = `layers.${linkTarget}.onClick ->\n\tNavigation.push layers.${linkView}`;
 
     let code = this.codeTree[this.state.selectedView] || '';
+    if (code) {
+      code += '\n';
+    }
     code += snippet;
     this.codeTree[this.state.selectedView] = code;
     this.setState({ code });
@@ -120,6 +150,7 @@ class App extends Component {
     this.editor.scrollToLine(position, true, true, function () {});
     this.editor.gotoLine(position, cursor, true);
     this.editor.focus();
+    this.debouncedUpdatePreview();
   }
 
   onSelectView(view) {
@@ -139,14 +170,19 @@ class App extends Component {
     }).then(response => {
       return response.json();
     }).then(layers => {
-      this.setState({layers})
+      let selectedView = this.state.selectedView || (layers[0] ? layers[0].name : undefined);
+      this.setState({
+        layers: layers,
+        selectedView: selectedView,
+        code: this.codeTree[selectedView]
+      })
       this.viewCompletions = layers.map(layer => {
         return {
           caption: `layers.${layer.name}`,
           value: `layers.${layer.name}`,
           meta: "View"
         };
-      })
+      });
     });
   }
 
@@ -200,6 +236,10 @@ class App extends Component {
     this.debouncedUpdatePreview();
   }
 
+  closeModal() {
+    this.setState({modalIsOpen: false});
+  }
+
   // Talk to preview
   postMessage(message) {
     let targetOrigin = '*';
@@ -215,18 +255,23 @@ class App extends Component {
     let message = JSON.parse(event.data);
     console.log('App::receiveMessage', message.type);
     if (message.type === 'addLink') {
-      this.addLink(message.target);
-      this.debouncedUpdatePreview();
+      this.setState({
+        code: this.codeTree[message.view],
+        selectedView: message.view,
+        selectedLinkTarget: message.target,
+        modalIsOpen: true
+      });
     } else if (message.type === 'navigatingTo') {
-      if (message.view !== this.state.selectedView) {
-        console.log('switching view because of navigation');
-        this.setState({
-          selectedView: message.view,
-          code: this.codeTree[message.view]
-        });
-      }
+      // if (message.view !== this.state.selectedView) {
+      //   this.setState({
+      //     selectedView: message.view,
+      //     code: this.codeTree[message.view]
+      //   });
+      // }
     }
   }
+
+
 
 
   render() {
@@ -239,6 +284,7 @@ class App extends Component {
     }
 
     let pages;
+    let linkTargets = [];
     if (this.state.layers) {
       pages = this.state.layers.filter(layer =>
         layer.kind === 'artboard'
@@ -248,24 +294,51 @@ class App extends Component {
             backgroundImage: `url(/imported/${this.documentId}@2x/images/${artboard.objectId}.png)`
           };
           return (
-            <div key={artboard.name}
-              className={['Thumbnail', this.state.selectedView === artboard.name ? 'Thumbnail--selected' : undefined].join(' ')}
-              onClick={e => this.onSelectView(artboard)}>
-              <div className="Thumbnail__image" style={ style }></div>
-              <div className="Thumbnail__title">
-                {artboard.name}
-              </div>
-            </div>
+            <Thumbnail
+               key={artboard.name}
+               name={artboard.name}
+               selected={this.state.selectedView === artboard.name}
+               style={style}
+               onSelect={e => this.onSelectView(artboard)}
+               />
           )
         }
       );
-    }
 
+      linkTargets = pages.map(thumbnail => {
+        return React.cloneElement(thumbnail, {
+          selected: false,
+          onSelect: () => {
+            this.addLink(this.state.selectedLinkTarget, thumbnail.props.name);
+            this.setState({modalIsOpen: false});
+          }
+        });
+      });
+
+    }
 
     return (
       <div className="App">
         <div style={{display: 'flex', height: '100vh' }}>
           <div className="content" style={{display: 'flex', flex: '1 1', flexDirection: 'column'}}>
+
+            <Modal
+              className="linkModal"
+              isOpen={this.state.modalIsOpen}
+              style={modalStyle}
+              // onAfterOpen={this.afterOpenModal}
+              // onRequestClose={this.closeModal}
+              >
+
+              <div style={{display:'flex', flex: '1 1', height: 40, alignItems: 'center', justifyContent: 'space-between'}}>
+                <div>Hostspot destination</div>
+                <a style={{cursor: 'pointer', color: 'blue'}} onClick={e => this.closeModal()}>Close</a>
+              </div>
+              <div style={{ display: 'flex', flex: '1 1', justifyContent: 'space-between'}}>
+                {linkTargets}
+              </div>
+            </Modal>
+
             <div className="toolbar" style={{display: 'flex', height: 48, justifyContent: 'space-between'}}>
             {/* Save Publish Device Edit/View */}
               <div className="toolbar__group">
@@ -295,6 +368,7 @@ class App extends Component {
                    ref="ace"
                    theme="monokai"
                    value={this.state.code}
+                   fontSize={14}
                    onChange={e => this.onChange(e)}
                    commands={this.commands}
                    editorProps={{$blockScrolling: Infinity}}
@@ -318,6 +392,22 @@ class App extends Component {
             </div>
           </div>
           <iframe ref="preview" className="preview" src={`/framer.html?id=${this.documentId}`}></iframe>
+        </div>
+      </div>
+    );
+  }
+}
+
+
+class Thumbnail extends Component {
+  render() {
+    return (
+      <div
+        className={['Thumbnail', this.props.selected ? 'Thumbnail--selected' : undefined].join(' ')}
+        onClick={this.props.onSelect}>
+        <div className="Thumbnail__image" style={ this.props.style }></div>
+        <div className="Thumbnail__title">
+          {this.props.name}
         </div>
       </div>
     );
