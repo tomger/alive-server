@@ -44,21 +44,32 @@ function loadProject(preloadedCode) {
 	];
 	Promise.all(requests)
 		.then(function(files){
+			return new Promise(function(success) {
+				console.time('compile');
+				var coffee = [
+					files[1],
+					files[2],
+					files[3]
+				].join('\n');
+				if (window.Alive.farmer) {
+					window.Alive.farmer.terminate();
+				}
+				window.Alive.farmer = new Worker("farmer.js");
+				window.Alive.farmer.onmessage = function(e) {
+					success(e.data);
+					window.Alive.farmer.terminate();
+				}
+				window.Alive.farmer.postMessage(coffee);
+			});
+		})
+		.then(function(js){
 			try {
-
-				var js = [
-					// files[0],
-					CoffeeScript.compile([
-						files[1],
-						files[2],
-						files[3]
-					].join('\n'))
-				];
+				console.timeEnd('compile');
 				Framer.Extras.ErrorDisplay.disable();
 				if (window.Alive.isInitialized) {
 					Framer.CurrentContext.reset();
 				}
-				eval(js.join(''));
+				eval(js);
 				// require('builtin:apollo-sys').eval(js.join(''));
 			} catch (error) {
 				console.error('Alive: Compile Error', error);
