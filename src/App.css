@@ -1,3 +1,7 @@
+@import 'https://fonts.googleapis.com/css?family=Roboto:400,700';
+@import 'https://fonts.googleapis.com/css?family=Roboto+Mono';
+
+
 html,
 body {
   height: 100%;
@@ -31,16 +35,37 @@ body {
   flex: 1 1;
 }
 
-.statusbar {
-  background: #161714;
-  height: 32px;
+.toolbar {
   display: flex;
+  height: 47px;
+  background: #272822;
+  z-index: 1;
   align-items: center;
-  justify-content:space-between;;
-  padding: 0 10px;
-  font-size: 14px;
-  line-height: 20px;
+  padding: 0 20px;
+  border-bottom: 1px solid #21231e;
+  font-size: 15px;
+  font-family: 'Roboto';
+  color: #c1aea7;
+}
+
+.toolbar__button {
+  text-decoration: none;
+  color: #c1aea7;
   cursor: pointer;
+  margin: 0 2px;
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+
+.toolbar__home {
+  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 900;
+  opacity: 0.4;
+}
+
+.toolbar__button:hover {
+  background: rgba(0, 0, 0, .3);
 }
 
 .ace_gutter-cell {
@@ -54,8 +79,10 @@ body {
 }
 
 .ace_editor {
-  font-weight: 500;
-  line-height: 1.5em;
+  font-weight: 400;
+  font-size: 14.5px;
+  line-height: 1.6em;
+  font-family: 'Roboto Mono';
 }
 .ace-monokai .ace_support.ace_constant,
 .ace-monokai .ace_support.ace_function,
@@ -64,22 +91,9 @@ body {
   font-style: normal !important;
 }
 
-
 .pagelist {
-  background: #2F3129;
+  background: #272822;
   border-right: 1px solid #21231e;
-}
-
-.statusbar > a {
-  color: #8F908A;
-  text-decoration: none;
-}
-
-.statusbar-button {
-  color: #8F908A;
-  padding: 2px 4px;
-  border-radius: 2px;
-  background: rgba(255,255,255,.05);
 }
 
 .preview {
@@ -90,7 +104,7 @@ body {
 
 
 .Thumbnail {
-  width: 100px;
+  width: 80px;
   padding: 16px 16px 0 16px;
   display: inline;
   text-align: center;
@@ -105,7 +119,7 @@ body {
   min-height: 20px;
   background-size: cover;
   background-repeat: no-repeat;
-  height: 170px;
+  height: 136px;
   display: block;
   border-radius: 3px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, .3)
@@ -119,8 +133,8 @@ body {
 .Thumbnail__title {
   margin-top: 10px;
   color: rgba(255, 255, 255, .4);
-  font-size: 14px;
-  font-family: 'Monaco';
+  font-size: 15px;
+  font-family: 'Roboto';
 }
 
 @keyframes App-logo-spin {

@@ -70,22 +70,18 @@ class App extends Component {
     this.fetchCode();
     this.fetchLayers();
 
+    window.addEventListener('keydown', e => {
+      if ((e.metaKey || e.ctrlKey) && e.keyCode == 83) {
+        this.saveCode();
+        e.preventDefault();
+        return false;
+      }
+    });
     window.addEventListener('message', e => this.receiveMessage(e), false);
   }
 
   initEditor() {
-    this.commands = [
-      {
-        name: "replace",
-        bindKey: {
-          win: "Ctrl-Shift-S",
-          mac: "Command-Shift-S"
-        },
-        exec: editor => {
-          this.saveCode();
-        }
-      }
-    ];
+    this.commands = [];
 
     let langTools = ace.acequire('ace/ext/language_tools');
     let framerCompletions = words
@@ -126,13 +122,6 @@ class App extends Component {
     this.editor.focus();
   }
 
-  focusView(view) {
-    this.setState({
-      selectedView: view,
-      code: this.codeTree[view]
-    });
-  }
-
   onSelectView(view) {
     this.setState({
       selectedView: view.name,
@@ -159,6 +148,10 @@ class App extends Component {
         };
       })
     });
+  }
+
+  share() {
+    window.open(`/framer.html?id=${this.documentId}`, 'alivePreview'+this.documentId);
   }
 
   saveCode() {
@@ -220,11 +213,18 @@ class App extends Component {
   // Listen to preview
   receiveMessage(event) {
     let message = JSON.parse(event.data);
+    console.log('App::receiveMessage', message.type);
     if (message.type === 'addLink') {
       this.addLink(message.target);
       this.debouncedUpdatePreview();
     } else if (message.type === 'navigatingTo') {
-      this.focusView(message.view);
+      if (message.view !== this.state.selectedView) {
+        console.log('switching view because of navigation');
+        this.setState({
+          selectedView: message.view,
+          code: this.codeTree[message.view]
+        });
+      }
     }
   }
 
@@ -264,44 +264,60 @@ class App extends Component {
 
     return (
       <div className="App">
-        <div style={{display: 'flex', height: '100vh'}}>
-          <div className="pagelist" style={{
-            display: 'flex',
-            flex: '0 0 132px',
-            flexDirection: 'column',
-            overflowX: 'hidden',
-            overflowY: 'auto'}}>
-            {pages}
+        <div style={{display: 'flex', height: '100vh' }}>
+          <div className="content" style={{display: 'flex', flex: '1 1', flexDirection: 'column'}}>
+            <div className="toolbar" style={{display: 'flex', height: 48, justifyContent: 'space-between'}}>
+            {/* Save Publish Device Edit/View */}
+              <div className="toolbar__group">
+                <div className="toolbar__home">Alive 0.0.1</div>
+              </div>
+              <div className="toolbar__group">
+                <a className="toolbar__button" onClick={e => this.saveCode() } >Save</a>
+                <a
+                  className="toolbar__button"
+                  onClick={e => this.saveCode().then(_ => this.share())}>Share</a>
+              </div>
+            </div>
+            <div style={{display: 'flex', flex: '1 1'}}>
+              <div className="pagelist" style={{
+                display: 'flex',
+                flexDirection: 'column',
+                overflowX: 'hidden',
+                overflowY: 'auto'}}>
+                {pages}
+              </div>
+              <div style={{ display: 'flex', flex: '1 1', flexDirection: 'column' }}>
+                <AceEditor
+                   className="editor"
+                   height="500px"
+                   width="auto"
+                   mode="coffee"
+                   ref="ace"
+                   theme="monokai"
+                   value={this.state.code}
+                   onChange={e => this.onChange(e)}
+                   commands={this.commands}
+                   editorProps={{$blockScrolling: Infinity}}
+                   onLoad={(editor) => {
+                     this.editor = editor;
+                     editor.focus();
+                     editor.getSession().setUseWrapMode(true);
+                     editor.renderer.setPadding(16);
+                     editor.renderer.setScrollMargin(10, 10);
+                     editor.setOptions({
+                      //  enableBasicAutocompletion: true,
+                       enableLiveAutocompletion: true,
+                       showLineNumbers: false,
+                       showGutter: false,
+                       displayIndentGuides: true,
+                       showPrintMargin: true
+                     });
+                   }}
+                 />
+              </div>
+            </div>
           </div>
-          <div style={{ display: 'flex', flex: '1 1', flexDirection: 'column'}}>
-            <AceEditor
-               className="editor"
-               height="500px"
-               width="auto"
-               mode="coffee"
-               ref="ace"
-               theme="monokai"
-               fontSize={14}
-               value={this.state.code}
-               onChange={e => this.onChange(e)}
-               commands={this.commands}
-               editorProps={{$blockScrolling: true}}
-               onLoad={(editor) => {
-                 this.editor = editor;
-                 editor.focus();
-                 editor.getSession().setUseWrapMode(true);
-                 editor.setOptions({
-                  //  enableBasicAutocompletion: true,
-                   enableLiveAutocompletion: true
-                 });
-               }}
-             />
-           {/* <div className="statusbar">
-              <a className="" href="https://framerjs.com/docs/" target="_blank">Framer Docs</a>
-              <div className="statusbar-button" title="Cmd + Shift + S" onClick={ e => this.saveAndReload() }>Save &amp; Run</div>
-           </div> */}
-           </div>
-           <iframe ref="preview" className="preview" src={`/framer.html?id=${this.documentId}`}></iframe>
+          <iframe ref="preview" className="preview" src={`/framer.html?id=${this.documentId}`}></iframe>
         </div>
       </div>
     );
