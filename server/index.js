@@ -28,6 +28,15 @@ function pathExists(path) {
   }
 }
 
+function traverseLayers(layersArray, fn) {
+  layersArray.forEach(layer => {
+    fn(layer);
+    if (layer.children) {
+      traverseLayers(layer.children, fn);
+    }
+  });
+}
+
 app.post('/upload', function(req, res) {
   var form = new formidable.IncomingForm();
   form.parse(req, function(err, fields, files) {
@@ -43,10 +52,17 @@ app.post('/upload', function(req, res) {
       });
     }
     if (fields.json) {
-      console.log('got json');
+      let layers = JSON.parse(fields.json);
+      let now = Date.now();
+      traverseLayers(layers, layer => {
+        if (layer.image) {
+          layer.image.path = `${layer.image.path}?time=${now}`;
+        }
+      });
+      let layersJson = JSON.stringify(layers);
       mkdirp(path.join(projectsDir, documentId), function() {
         let stream = fs.createWriteStream(path.join(projectsDir, documentId, 'layers.json'));
-        stream.write(fields.json);
+        stream.write(layersJson);
         stream.end();
       });
     }
@@ -54,11 +70,12 @@ app.post('/upload', function(req, res) {
 });
 
 app.get('/imported/:documentId@:size/images/:image', function(req, res) {
-  // Cache-Control: max-age=31556926
   let documentId = String(parseInt(req.params.documentId, 10));
   let filename = req.params.image.replace(/[^a-zA-Z0-9-_.]/g, '');
   let imagePath = path.join(__dirname, '..', projectsDir, documentId, 'images', filename);
-  res.sendFile(imagePath);
+  res.setHeader('Cache-Control', 'public, max-age=' + foreverMaxAge);
+  res.sendFile(imagePath, {
+  });
 });
 
 app.get('/layers.:format', function(req, res) {
@@ -72,6 +89,7 @@ app.get('/layers.:format', function(req, res) {
       this.pipe(res);
     }).on('error', function(error) {
       console.error(error);
+      res.end();
     });
   } catch (e) {
     res.send('')
@@ -113,11 +131,14 @@ app.post('/app.coffee', function(req, res) {
 });
 
 
+app.use('/farmer.js', express.static('linear.framer/farmer.js', { maxAge: foreverMaxAge}));
+app.use('/coffee-script.js', express.static('linear.framer/coffee-script.js', { maxAge: foreverMaxAge}));
 // Proxy for the React dev environment. Websocket & JS Bundle:
 if (pathExists('build')) {
   console.log('Production');
   app.use(/\/\d+/, express.static('build/index.html'));
   app.use('/', express.static('build', { maxAge: foreverMaxAge}));
+
   app.use('/', express.static('linear.framer'));
 } else {
   console.log('Development');
