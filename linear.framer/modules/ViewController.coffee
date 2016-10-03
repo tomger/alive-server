@@ -40,7 +40,7 @@ class ViewController extends Layer
 					# reset size since content moved to scrollComponent. prevents scroll bug when dragging outside.
 					view.size = {width: @width, height: @height}
 
-		transitions =
+		@transitions =
 			switchInstant:
 				newView:
 					to: {x: 0, y: 0}
@@ -131,10 +131,10 @@ class ViewController extends Layer
 					to: {}
 
 		# shortcuts
-		transitions.slideIn = transitions.slideInRight
-		transitions.slideOut = transitions.slideOutRight
-		transitions.pushIn = transitions.pushInRight
-		transitions.pushOut = transitions.pushOutRight
+		@transitions.slideIn = @transitions.slideInRight
+		@transitions.slideOut = @transitions.slideOutRight
+		@transitions.pushIn = @transitions.pushInRight
+		@transitions.pushOut = @transitions.pushOutRight
 
 		# events
 		Events.ViewWillSwitch = "viewWillSwitch"
@@ -142,92 +142,110 @@ class ViewController extends Layer
 		Layer::onViewWillSwitch = (cb) -> @on(Events.ViewWillSwitch, cb)
 		Layer::onViewDidSwitch = (cb) -> @on(Events.ViewDidSwitch, cb)
 
-		_.each transitions, (animProps, name) =>
+		# _.each @transitions, (animProps, name) =>
+		#
+		# 	if options.autoLink
+		# 		layers = Framer.CurrentContext.getLayers()
+		# 		for btn in layers
+		# 			if _.includes btn.name, name
+		# 				viewController = @
+		# 				btn.onClick ->
+		# 					anim = @name.split('_')[0]
+		# 					linkName = @name.replace(anim+'_','')
+		# 					linkName = linkName.replace(/\d+/g, '') # remove numbers
+		# 					viewController[anim] _.find(layers, (l) -> l.name is linkName)
 
-			if options.autoLink
-				layers = Framer.CurrentContext.getLayers()
-				for btn in layers
-					if _.includes btn.name, name
-						viewController = @
-						btn.onClick ->
-							anim = @name.split('_')[0]
-							linkName = @name.replace(anim+'_','')
-							linkName = linkName.replace(/\d+/g, '') # remove numbers
-							viewController[anim] _.find(layers, (l) -> l.name is linkName)
-
-			@[name] = (newView, animationOptions = @animationOptions) =>
-
-				return if newView is @currentView
-				if newView.init?
-					newView.init()
-
-				# make sure the new layer is inside the viewcontroller
-				newView.parent = @
-				newView.sendToBack()
-
-				# reset props in case they were changed by a prev animation
-				newView.point = {x:0, y: 0}
-				newView.opacity = 1
-				newView.scale = 1
-				newView.brightness = 100
-				newView.visible = yes # Alive XXX
-
-				# oldView
-				@currentView?.point = {x: 0, y: 0} # fixes offset issue when moving too fast between screens
-				@currentView?.props = animProps.oldView?.from
-				animObj = _.extend {properties: animProps.oldView?.to}, animationOptions
-				_.defaults(animObj, { properties: {} })
-				outgoing = @currentView?.animate animObj
-
-				# newView
-				newView.props = animProps.newView?.from
-				incoming = newView.animate _.extend {properties: animProps.newView?.to}, animationOptions
-
-				# layer order
-				if _.includes name, 'Out'
-					newView.placeBehind(@currentView)
-					outgoing.on Events.AnimationEnd, => @currentView.bringToFront()
-				else
-					newView.placeBefore(@currentView)
-
-				@emit(Events.ViewWillSwitch, @currentView, newView)
-
-				# change CurrentView before animation has finished so one could go back in history
-				# without having to wait for the transition to finish
-				@saveCurrentViewToHistory name, outgoing, incoming
-				@currentView = newView
-				@emit("change:previousView", @previousView)
-				@emit("change:currentView", @currentView)
-
-				if incoming.isAnimating
-					hook = incoming
-				else
-					hook = outgoing
-
-				# Begin Alive
-				sendMessage
-					type: 'navigatingTo'
-					view: @currentView.name
-				hook.on Events.AnimationEnd, =>
-					@hideAllLayersExceptFor(@currentView)
-					@emit(Events.ViewDidSwitch, @previousView, @currentView)
-				# End Alive
-
-
-		if options.initialViewName?
-			autoInitial = _.find Framer.CurrentContext.getLayers(), (l) -> l.name is options.initialViewName
-			if autoInitial? then @switchInstant autoInitial
+		# if options.initialViewName?
+		# 	autoInitial = _.find Framer.CurrentContext.getLayers(), (l) -> l.name is options.initialViewName
+		# 	if autoInitial? then @show autoInitial
 
 		if options.initialView?
-			@switchInstant options.initialView
+			@show options.initialView
 
-		if options.backButtonName?
-			backButtons = _.filter Framer.CurrentContext.getLayers(), (l) -> _.includes l.name, options.backButtonName
-			for btn in backButtons
-				btn.onClick => @back()
+		# if options.backButtonName?
+		# 	backButtons = _.filter Framer.CurrentContext.getLayers(), (l) -> _.includes l.name, options.backButtonName
+		# 	for btn in backButtons
+		# 		btn.onClick => @back()
 
 	@define "previousView",
 			get: -> @history[0].view
+
+
+
+	show: (newView) =>
+		@push newView,
+			animation: no
+	back: () =>
+		@pop()
+
+	push: (newView, animationOptions) =>
+
+		return if newView is @currentView
+		if newView.init?
+			newView.init()
+
+		animationOptions = Object.assign({}, @animationOptions, animationOptions)
+		if animationOptions.animation? and animationOptions.animation is no
+			name = 'switchInstant'
+		else if animationOptions.transition
+			name = animationOptions.transition
+		else
+			name = 'slideIn'
+		animProps = @transitions[name]
+
+		console.log(JSON.stringify(animProps), JSON.stringify(animationOptions))
+		# make sure the new layer is inside the viewcontroller
+		newView.parent = @
+		newView.sendToBack()
+
+		# reset props in case they were changed by a prev animation
+		newView.point = {x:0, y: 0}
+		newView.opacity = 1
+		newView.scale = 1
+		newView.brightness = 100
+		newView.visible = yes # Alive XXX
+
+		# oldView
+		@currentView?.point = {x: 0, y: 0} # fixes offset issue when moving too fast between screens
+		@currentView?.props = animProps.oldView?.from
+		animObj = _.extend {properties: animProps.oldView?.to}, animationOptions
+		_.defaults(animObj, { properties: {} })
+		outgoing = @currentView?.animate animObj
+
+		# newView
+		newView.props = animProps.newView?.from
+		incoming = newView.animate _.extend {properties: animProps.newView?.to}, animationOptions
+
+		# layer order
+		if _.includes name, 'Out'
+			newView.placeBehind(@currentView)
+			outgoing.on Events.AnimationEnd, => @currentView.bringToFront()
+		else
+			newView.placeBefore(@currentView)
+
+		@emit(Events.ViewWillSwitch, @currentView, newView)
+
+		# change CurrentView before animation has finished so one could go back in history
+		# without having to wait for the transition to finish
+		@saveCurrentViewToHistory name, outgoing, incoming
+		@currentView = newView
+		@emit("change:previousView", @previousView)
+		@emit("change:currentView", @currentView)
+
+		if incoming.isAnimating
+			hook = incoming
+		else
+			hook = outgoing
+
+		# Begin Alive
+		sendMessage
+			type: 'navigatingTo'
+			view: @currentView.name
+		hook.on Events.AnimationEnd, =>
+			@hideAllLayersExceptFor(@currentView)
+			@emit(Events.ViewDidSwitch, @previousView, @currentView)
+		# End Alive
+
 
 	hideAllLayersExceptFor: (visibleLayer) ->
 		for layer in Framer.CurrentContext.getLayers()
@@ -244,7 +262,7 @@ class ViewController extends Layer
 			incomingAnimation: incomingAnimation
 			outgoingAnimation: outgoingAnimation
 
-	back: ->
+	pop: ->
 		previous = @history[0]
 		if previous.view?
 			previous.view.visible = yes # Alive XXX

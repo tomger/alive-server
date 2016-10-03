@@ -3,6 +3,8 @@ Utils.isLocalAssetUrl = (url, baseUrl) ->
   return no
 
 params = queryToObject(window.location.search);
+Framer.Extras.Preloader.disable()
+# Framer.Extras.Preloader.setLogo("none")
 window.Alive.layers = layers = Framer.Importer.load "imported/#{params.id}@2x"
 
 initialView = layers[window.Alive.initialView] if window.Alive.initialView?
@@ -17,7 +19,7 @@ for name, layer of layers
           layer.onLoadCallback(layer, layers)
           layer.isInititalized = yes
 
-window.Alive.views = views = new ViewController
+window.Alive.Navigation = Navigation = new ViewController
   initialView: initialView
 # hacky, but we need to wait until app.coffee has been run.
 Utils.delay 0.1, -> initialView.init()
@@ -58,6 +60,7 @@ AliveLayerSelector = () ->
     sendMessage
       type: 'addLink'
       target: layer.name
+      view: window.Alive.Navigation.currentView.name
     event.stopPropagation()
   document.body.addEventListener 'click', clickHandler, true
 

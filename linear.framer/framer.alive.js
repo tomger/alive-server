@@ -97,7 +97,7 @@ function receiveMessage(event) {
 		window.Alive.initialView = message.view;
 		loadProject(message.code);
 	} else if (message.type === 'show') {
-    window.Alive.views.switchInstant(window.Alive.layers[message.view]);
+    window.Alive.Navigation.show(window.Alive.layers[message.view]);
     // views.history.shift()
   }
 }
