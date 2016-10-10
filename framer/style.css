@@ -54,9 +54,6 @@ body:active {
 	background:#28AFFA; color:#fff;
 }
 
-.Alive-editing * {
-	pointer-events: auto !important;
-}
 .Alive-highlighter {
 	background: rgba(0, 120, 255, 0.2);
 	border: 1px solid #1FADFF;

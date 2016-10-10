@@ -1,70 +1,119 @@
+# hack to tell Layer.coffee to never cachebust
 Utils.isLocalAssetUrl = (url, baseUrl) ->
-  # tell Layer.coffee to never cachebust
   return no
 
-params = queryToObject(window.location.search);
-Framer.Extras.Preloader.disable()
-# Framer.Extras.Preloader.setLogo("none")
-window.Alive.layers = layers = Framer.Importer.load "imported/#{params.id}@2x"
+AliveLoadLayers = () ->
+  params = queryToObject window.location.search
+  Framer.Extras.Preloader.disable()
+  Framer.Extras.Preloader.setLogo("none")
+  window.layers = Framer.Importer.load "imported/#{params.id}@2x"
 
-initialView = layers[window.Alive.initialView] if window.Alive.initialView?
-for name, layer of layers
-  if layer._info.kind is "artboard"
-    initialView = layer if not initialView
-    do (layer) =>
-      layer.onLoad = (callback) =>
-        layer.onLoadCallback = callback
-      layer.init = () =>
-        if not layer.isInititalized and layer.onLoadCallback?
-          layer.onLoadCallback(layer, layers)
-          layer.isInititalized = yes
+AliveViewController = () ->
+  console.log 'AliveViewController'
+  initialView = layers[window.Alive.initialView] if window.Alive.initialView?
+  for name, layer of layers
+    if layer._info.kind is "artboard"
+      initialView = layer if not initialView
+      do (layer) =>
+        layer.onLoad = (callback) =>
+          layer.onLoadCallback = callback
+  window.Navigation = new ViewController
+    initialView: initialView
 
-window.Alive.Navigation = Navigation = new ViewController
-  initialView: initialView
-# hacky, but we need to wait until app.coffee has been run.
-Utils.delay 0.1, -> initialView.init()
+AliveHotspotEditor = () ->
+  hotspotContext = new Framer.Context(name:"Hotspots")
+  window.Alive.HotspotContext = hotspotContext
+  hotspot = null
+  hotspotLabel = null
+  hotspotContext.run =>
+    hotspotLabel = new Layer
+      backgroundColor: 'transparent'
+      y: Align.bottom(-20)
+      x: Align.center
+      height: 20
+      width: 800
+      style:
+        fontSize: '16px'
+        textShadow: '0 1px 3px black'
+        textAlign: 'center'
+        zIndex: 2001
 
 
-# contains = (rect, point) ->
-#   point.x >= rect.left and point.x <= rect.right and point.y >= rect.top and point.y <= rect.bottom;
+    hotspot = new Layer
+      borderWidth: 1
+      backgroundColor: 'rgba(0,173,255,.54)'
+      borderColor: '#2A9FD8'
+      visible: no
+      style:
+        pointerEvents: 'none'
+        zIndex: 2000
 
-AliveLayerSelector = () ->
-  currentLayer = null
-  highlighter = document.createElement 'div'
-  highlighter.className = 'Alive-highlighter'
 
-  document.body.appendChild highlighter
+  for name, layer of window.layers
+    if layer._info.kind isnt "artboard"
+      do (layer) =>
+        layer.onMouseOver (event) ->
+          # if @_hotspot
+          #   return
+          hotspot.visible = yes
+          hotspotLabel.visible = yes
+          hotspot.frame = layer.canvasFrame
+          hotspotLabel.html = 'layers.' + layer.name
+          event.stopPropagation()
+        layer.onMouseOut ->
+          hotspot.visible = no
+          hotspotLabel.visible = no
+          event.stopPropagation()
+        layer.onClick ->
+          event.stopPropagation()
+          sendMessage
+            type: 'addLink'
+            target: layer.name
+            view: window.Navigation.currentView.name
+    for triggerName, action of layer.actions
+      trigger = layers[triggerName]
+      if trigger
+        trigger._hotspot = new Layer
+          parent: trigger.parent
+          frame: trigger.frame
+          borderWidth: 2
+          backgroundColor: 'rgba(0, 255, 55, 0.3)'
+          borderColor: 'rgb(18, 187, 63)'
+          style:
+            zIndex: 2000
 
-  document.body.addEventListener 'mousemove', (event) ->
-    screen = document.querySelector '#FramerContextRoot-DeviceScreen'
-    if not event.metaKey
-      highlighter.style.display = 'none'
-      screen.classList.remove 'Alive-editing'
-      return
+AliveHotspotViewer = () ->
+  for name, layer of layers
+    if layer._info.kind is "artboard"
+      do (layer) =>
+        layer.init = () =>
+          if not window.Alive.isBuildMode and not layer.isInititalized
+            # console.log('found actions', layer.actions);
+            for trigger, action of layer.actions
+              if layers[trigger]
+                do (trigger, action) ->
+                  layers[trigger].onClick ->
+                    Navigation.push layers[action.view],
+                      transition: action.transition
+            if layer.onLoadCallback?
+              layer.onLoadCallback(layers)
+            layer.isInititalized = yes
 
-    screen.classList.add 'Alive-editing'
-    currentLayer = event.target
-    if currentLayer
-      rect = currentLayer.getBoundingClientRect()
-      for p of rect
-        highlighter.style[p] = rect[p] + 'px'
-      highlighter.style.display = 'block'
-    else
-      highlighter.style.display = 'none'
+  window.Navigation.initialView.init()
 
-  clickHandler = (event) ->
-    if not event.metaKey
-      return
-    layer = Framer.CurrentContext.getLayers().find (layer) ->
-      layer._element is event.target
-    sendMessage
-      type: 'addLink'
-      target: layer.name
-      view: window.Alive.Navigation.currentView.name
-    event.stopPropagation()
-  document.body.addEventListener 'click', clickHandler, true
 
-if not window.Alive.isInitialized
-  AliveLayerSelector()
+AliveCodeReady = () ->
+  console.log 'AliveCodeReady'
+  if window.Alive.isBuildMode
+    AliveHotspotEditor()
+  else
+    AliveHotspotViewer()
+
+AliveInit = () ->
+  AliveLoadLayers()
+  AliveViewController()
+  # if not window.Alive.isInitialized
   window.Alive.isInitialized = true;
   console.log 'Alive is initialized'
+
+AliveInit()

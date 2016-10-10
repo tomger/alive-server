@@ -7,8 +7,14 @@ import 'brace/mode/coffee';
 import 'brace/theme/monokai';
 import 'brace/ext/language_tools';
 
+import { parseCode, stringifyCode, debounce, traverseLayers } from './Utils'
 import './App.css';
 import words from './words';
+
+// editor/
+// share/
+// viewer/
+
 
 const modalStyle = {
   overlay : {
@@ -21,7 +27,7 @@ const modalStyle = {
     zIndex: 1
   },
   content : {
-    width: 600,
+    width: 500,
     transform: 'translate(-50%, -50%)',
     background: 'white',
     position: 'absolute',
@@ -34,72 +40,47 @@ const modalStyle = {
   }
 }
 
-function parseCode (code) {
-  // Really really dumb parsing of the view tree code
-  let rv = {};
-  let currentBlock = 'global';
-  let lines = code.split('\n');
-  lines.forEach(line => {
-    let matches = /^layers.(.*?).onLoad/.exec(line);
-    if (matches) {
-      currentBlock = matches[1];
-      return; // skip onload line
-    } else if (line.indexOf('    ') === 0) {
-      line = line.substr(4); // cut off tab
-    }
-    rv[currentBlock] = rv[currentBlock] || [];
-    rv[currentBlock].push(line);
-  });
-  for (let view in rv) {
-    if ({}.hasOwnProperty.call(rv, view)) {
-      rv[view] = rv[view].join('\n');
-    }
-  }
-  return rv;
+function getPathParts() {
+  return window.location.pathname.split('/');
 }
 
-function stringifyCode(object) {
-  let rv = [object['global'] || ''];
-  for (let view in object) {
-    if (view === 'global') {
-      continue;
-    }
-    rv.push(`layers.${view}.onLoad ->`);
-    rv.push(object[view].split('\n').map(line => `    ${line}`).join('\n'));
-  }
-  return rv.join('\n')
-}
-
-function debounce(fn, delay) {
-  let timer = null;
-  return function (...args) {
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      fn.call(this, ...args);
-    }, delay);
-  };
+function getPathPartRight(index) {
+  let parts = getPathParts();
+  return parts[parts.length - 1 - (index || 0)];
 }
 
 class App extends Component {
   constructor() {
     super();
+
     this.state = {
-      initialView: 'home',
-      modalIsOpen: false
+      initialView: null,
+      modalIsOpen: false,
+      buildmode: false,
+      shareId: undefined,
+      saveButtonLabel: 'Save'
     };
+
+    this.codeTree = {};
     this.editor = null;
-    this.documentId = location.pathname.replace(/[\?\.\/]/g, '');
-    this.initEditor();
+    this.documentId = getPathPartRight(0);
+    this.isReadonly = getPathPartRight(1) === 'share';
     this.debouncedUpdatePreview = debounce(this.updatePreview, 300);
+    this.debouncedSaveCode = debounce(this.saveCode, 900);
+
+    this.initEditor();
   }
 
   componentDidMount() {
+    if (!this.documentId) {
+      return;
+    }
     this.fetchCode();
     this.fetchLayers();
 
     window.addEventListener('keydown', e => {
       if ((e.metaKey || e.ctrlKey) && e.keyCode === 83) {
-        this.saveCode();
+        this.debouncedSaveCode();
         e.preventDefault();
         return false;
       }
@@ -132,31 +113,31 @@ class App extends Component {
     langTools.setCompleters([this.staticWordCompleter]);
   }
 
-  addLink(linkTarget, linkView) {
-    let snippet = `layers.${linkTarget}.onClick ->\n\tNavigation.push layers.${linkView}`;
-
-    let code = this.codeTree[this.state.selectedView] || '';
-    if (code) {
-      code += '\n';
+  removeLink(linkTarget) {
+    try {
+      delete this.codeTree[this.state.selectedView].actions[linkTarget];
+    } catch (error) {
+      console.error(error);
     }
-    code += snippet;
-    this.codeTree[this.state.selectedView] = code;
-    this.setState({ code });
+    this.updatePreview();
+    this.debouncedSaveCode();
+  }
 
-    let lines = code.split('\n');
-    let position = lines.length;
-    let cursor = lines[lines.length - 1].length;
-    this.editor.resize(true);
-    this.editor.scrollToLine(position, true, true, function () {});
-    this.editor.gotoLine(position, cursor, true);
-    this.editor.focus();
-    this.debouncedUpdatePreview();
+  addLink(linkTarget, linkView) {
+    let view = this.state.selectedView;
+    this.codeTree[view] = this.codeTree[view] || {};
+    this.codeTree[view].actions = this.codeTree[view].actions || {};
+    this.codeTree[view].actions[linkTarget] = {
+      'view': linkView
+    };
+    this.updatePreview();
+    this.debouncedSaveCode();
   }
 
   onSelectView(view) {
     this.setState({
       selectedView: view.name,
-      code: this.codeTree[view.name]
+      code: this.codeTree[view.name] ? this.codeTree[view.name].code : ''
     });
     this.postMessage({
       type: 'show',
@@ -174,24 +155,54 @@ class App extends Component {
       this.setState({
         layers: layers,
         selectedView: selectedView,
-        code: this.codeTree[selectedView]
+        code: this.codeTree[selectedView] ? this.codeTree[selectedView].code : ''
       })
-      this.viewCompletions = layers.map(layer => {
+
+      let flatLayers = [];
+      traverseLayers(layers, layer => {
+        flatLayers.push(layer);
+      });
+      this.viewCompletions = flatLayers.map(layer => {
         return {
           caption: `layers.${layer.name}`,
           value: `layers.${layer.name}`,
-          meta: "View"
+          meta: "Layer"
         };
       });
     });
   }
 
   share() {
-    window.open(`/framer.html?id=${this.documentId}`, 'alivePreview'+this.documentId);
+    this.setState({ shareIsOpen: true });
+    if (!this.state.shareId) {
+      return fetch(`/project.json?id=${this.documentId}`, {
+      }).then(response => {
+        return response.json();
+      }).then(project => {
+        this.setState({
+          shareId: project.shareId
+        })
+      });
+    }
+  }
+
+  onSaveButtonClicked() {
+    this.debouncedSaveCode();
+    this.setState({ saveButtonLabel: 'Saving' });
+    clearTimeout(this.saveButtonHandle);
+    this.saveButtonHandle = setTimeout(e => {
+      this.setState({ saveButtonLabel: 'Save' });
+    }, 500);
   }
 
   saveCode() {
-    this.setState({code: this.codeTree[this.state.selectedView]});
+    if (this.isReadonly) {
+      return;
+    }
+
+    this.setState({
+      code: this.codeTree[this.state.selectedView].code
+    });
     let code = stringifyCode(this.codeTree);
     let formData  = new FormData();
     formData.append('code', code);
@@ -211,10 +222,10 @@ class App extends Component {
     }).then(response => {
       return response.text();
     }).then(code => {
-      console.log('loaded code');
       this.codeTree = parseCode(code);
+      console.log('fetchCode', this.codeTree)
       this.setState({
-        code: this.codeTree[this.state.selectedView]
+        code: this.state.selectedView ? this.codeTree[this.state.selectedView].code : ''
       });
       var undo_manager = this.refs.ace.editor.getSession().getUndoManager();
       undo_manager.reset();
@@ -232,8 +243,13 @@ class App extends Component {
   }
 
   onChange(newValue) {
-    this.codeTree[this.state.selectedView] = newValue;
+    this.codeTree[this.state.selectedView].code = newValue;
     this.debouncedUpdatePreview();
+    this.debouncedSaveCode();
+  }
+
+  closeShareModal() {
+    this.setState({shareIsOpen: false});
   }
 
   closeModal() {
@@ -256,34 +272,41 @@ class App extends Component {
     console.log('App::receiveMessage', message.type);
     if (message.type === 'addLink') {
       this.setState({
-        code: this.codeTree[message.view],
+        code: this.codeTree[message.view] ? this.codeTree[message.view].code : '',
         selectedView: message.view,
         selectedLinkTarget: message.target,
         modalIsOpen: true
       });
     } else if (message.type === 'navigatingTo') {
-      // if (message.view !== this.state.selectedView) {
-      //   this.setState({
-      //     selectedView: message.view,
-      //     code: this.codeTree[message.view]
-      //   });
-      // }
+      if (message.view !== this.state.selectedView) {
+        this.setState({
+          selectedView: message.view,
+          code: this.codeTree[message.view] ? this.codeTree[message.view].code : ''
+        });
+      }
     }
   }
 
-
+  toggleMode() {
+    let buildmode = !this.state.buildmode;
+    this.setState({buildmode});
+    this.postMessage({
+      type: 'buildmode',
+      value: buildmode,
+      view: this.state.selectedView
+    });
+  }
 
 
   render() {
     if (!this.documentId) {
       return (
-        <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems:'center'}}>
-          <a href={`/Alive.sketchplugin.zip`} style={{ fontWeight: 600, padding: '12px 15px', background: '#0076FF', color: '#fff', textDecoration: 'none', borderRadius: 3}}>Download Sketch Plugin</a>
-        </div>
+        <div>Sorry, I don't know which document you want to edit.</div>
       );
     }
 
     let pages;
+    let linkModal;
     let linkTargets = [];
     if (this.state.layers) {
       pages = this.state.layers.filter(layer =>
@@ -305,9 +328,27 @@ class App extends Component {
         }
       );
 
+      let removeLinkButton;
+      let currentAction;
+
+      if (this.codeTree &&
+          this.codeTree[this.state.selectedView] &&
+          this.codeTree[this.state.selectedView].actions &&
+          this.codeTree[this.state.selectedView].actions[this.state.selectedLinkTarget]) {
+            currentAction = this.codeTree[this.state.selectedView].actions[this.state.selectedLinkTarget];
+      }
+
+      if (currentAction) {
+        removeLinkButton = (
+          <a style={{cursor: 'pointer', color: 'red', marginRight: 16}}
+            onClick={e => { this.removeLink(this.state.selectedLinkTarget); this.closeModal() }}>Remove Link</a>
+        );
+      }
+
       linkTargets = pages.map(thumbnail => {
         return React.cloneElement(thumbnail, {
-          selected: false,
+          selected: currentAction && (thumbnail.props.name === currentAction.view), // OH BOY XXX
+          titleStyle: { color: '#333'},
           onSelect: () => {
             this.addLink(this.state.selectedLinkTarget, thumbnail.props.name);
             this.setState({modalIsOpen: false});
@@ -315,6 +356,24 @@ class App extends Component {
         });
       });
 
+      linkModal = (
+        <Modal
+          className="modal linkModal"
+          isOpen={this.state.modalIsOpen}
+          style={modalStyle}
+          onRequestClose={e => this.closeModal()}>
+          <div className="modal__toolbar" style={{display:'flex', flex: '1 1', height: 40, alignItems: 'center', justifyContent: 'space-between'}}>
+            <div className="modal__title">Link to</div>
+            <div>
+              {removeLinkButton}
+              <a style={{cursor: 'pointer', color: '#555'}} onClick={e => this.closeModal()}>Close</a>
+            </div>
+          </div>
+          <div className="modal__content" style={{ display: 'flex', flex: '1 1', overflowX: 'auto'}}>
+            {linkTargets}
+          </div>
+        </Modal>
+      );
     }
 
     return (
@@ -323,32 +382,48 @@ class App extends Component {
           <div className="content" style={{display: 'flex', flex: '1 1', flexDirection: 'column'}}>
 
             <Modal
-              className="linkModal"
-              isOpen={this.state.modalIsOpen}
+              className="modal shareModal"
+              isOpen={this.state.shareIsOpen}
               style={modalStyle}
-              // onAfterOpen={this.afterOpenModal}
-              // onRequestClose={this.closeModal}
+              onRequestClose={e => this.closeShareModal()}
               >
-
-              <div style={{display:'flex', flex: '1 1', height: 40, alignItems: 'center', justifyContent: 'space-between'}}>
-                <div>Hostspot destination</div>
-                <a style={{cursor: 'pointer', color: 'blue'}} onClick={e => this.closeModal()}>Close</a>
+              <div className="modal__toolbar" style={{display:'flex', flex: '1 1', height: 40, alignItems: 'center', justifyContent: 'space-between'}}>
+                <div className="modal__title">Share</div>
+                <a style={{cursor: 'pointer', color: '#555'}} onClick={e => this.closeShareModal()}>Close</a>
               </div>
-              <div style={{ display: 'flex', flex: '1 1', justifyContent: 'space-between'}}>
-                {linkTargets}
+              <div className="modal__content" style={{}}>
+                <div className="share__linkBlock">
+                  <div className="share__linkTitle">Viewer</div>
+                  <a target="_blank" className="share__link" href={`/viewer?id=${this.state.shareId}`}>{location.origin}/viewer?id={this.state.shareId}</a>
+                </div>
+                <div className="share__linkBlock">
+                  <div className="share__linkTitle">Viewer with Code</div>
+                  <a target="_blank" className="share__link" href={`/share/${this.state.shareId}`}>{location.origin}/share/{this.state.shareId}</a>
+                </div>
+                <div className="share__linkBlock share__warning">
+                  Warning: sharing the current URL (/edit/{this.documentId}) will give the receiver full editing access!
+                </div>
               </div>
             </Modal>
 
-            <div className="toolbar" style={{display: 'flex', height: 48, justifyContent: 'space-between'}}>
+            {linkModal}
+
+            <div className="toolbar" style={{display: this.isReadonly ? 'none' : 'flex', height: 48, justifyContent: 'space-between'}}>
             {/* Save Publish Device Edit/View */}
               <div className="toolbar__group">
-                <div className="toolbar__home">Alive 0.0.1</div>
+                <a className="toolbar__button" style={{width: 56, display: 'inline-block'}} onClick={e => this.onSaveButtonClicked() } >{this.state.saveButtonLabel}</a>
+                <a className="toolbar__button" onClick={e => this.saveCode().then(_ => this.share())}>Share</a>
               </div>
+              <a className="toolbar__button" href="https://framerjs.com/docs/" target="_blank">Docs</a>
               <div className="toolbar__group">
-                <a className="toolbar__button" onClick={e => this.saveCode() } >Save</a>
-                <a
-                  className="toolbar__button"
-                  onClick={e => this.saveCode().then(_ => this.share())}>Share</a>
+                {/* <a className="toolbar__button"
+                   style={{ marginLeft: 24}}
+                   onClick={e => this.saveCode() } >Follow</a> */}
+                <a className={['toolbar__button', this.state.buildmode ? 'isSelected' : undefined].join(' ')}
+                   style={{ marginLeft: 24}}
+                   onClick={e => this.toggleMode() } >Edit Hotspots</a>
+                <a className={['toolbar__button', !this.state.buildmode ? 'isSelected' : undefined].join(' ')}
+                   onClick={e => this.toggleMode() } >Preview</a>
               </div>
             </div>
             <div style={{display: 'flex', flex: '1 1'}}>
@@ -406,7 +481,7 @@ class Thumbnail extends Component {
         className={['Thumbnail', this.props.selected ? 'Thumbnail--selected' : undefined].join(' ')}
         onClick={this.props.onSelect}>
         <div className="Thumbnail__image" style={ this.props.style }></div>
-        <div className="Thumbnail__title">
+        <div className="Thumbnail__title" style={ this.props.titleStyle }>
           {this.props.name}
         </div>
       </div>

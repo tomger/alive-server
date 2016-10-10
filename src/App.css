@@ -1,6 +1,4 @@
-@import 'https://fonts.googleapis.com/css?family=Roboto:400,700';
-@import 'https://fonts.googleapis.com/css?family=Roboto+Mono';
-
+@import 'https://fonts.googleapis.com/css?family=Roboto:400,500,700';
 
 html,
 body {
@@ -35,13 +33,64 @@ body {
   flex: 1 1;
 }
 
+.modal {
+  font-size: 16px;
+  font-family: 'Roboto';
+}
+
+.modal__content {
+  margin-bottom: 16px;
+}
+
+.modal__toolbar a{
+  padding: 8px 20px;
+  background: #eee;
+  border-radius: 3px;
+}
+
+.modal__toolbar {
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+}
+
+.modal__title {
+  font-size: 25px;
+  font-weight: 700;
+}
+
+.share__linkBlock {
+  margin: 40px 0;
+}
+
+.share__linkTitle {
+  color: #555;
+  margin-bottom: 8px;
+  font-weight: 400;
+}
+
+.share__link {
+  color: #1287bf;
+  text-decoration: none;
+  border: 2px solid #ddd;
+  display: block;
+  padding: 12px 12px;
+  border-radius: 2px;
+}
+
+.share__warning {
+  color: #aaa;
+  margin: 32px 0 16px 0;
+  width: 90%;
+}
+
 .toolbar {
   display: flex;
   height: 47px;
   background: #272822;
   z-index: 1;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 8px;
   border-bottom: 1px solid #21231e;
   font-size: 15px;
   font-family: 'Roboto';
@@ -50,11 +99,24 @@ body {
 
 .toolbar__button {
   text-decoration: none;
-  color: #c1c1c1;
+  color: #989898;
   cursor: pointer;
-  margin: 0 2px;
+  margin: 0 4px;
   padding: 6px 12px;
   border-radius: 3px;
+  box-shadow: 0 1px 1px #21231f;
+  background: rgb(44, 45, 40);
+  user-select: none;
+  text-align: center;
+}
+
+.toolbar__button:active {
+  background: #3a3c34;
+}
+
+.toolbar__button.isSelected {
+  background: #1f1a1a;
+  box-shadow: inset 0 1px 2px #0e0e0e;
 }
 
 .toolbar__home {
@@ -65,7 +127,7 @@ body {
 }
 
 .toolbar__button:hover {
-  background: rgba(0, 0, 0, .3);
+  color: #fff;
 }
 
 .ace_gutter-cell {
@@ -124,17 +186,28 @@ body {
   box-shadow: 0 1px 3px rgba(0, 0, 0, .3)
 }
 
-.Thumbnail--selected .Thumbnail__image {
-  box-shadow: 0 0 0 2px #F8E71C, 0 1px 3px rgba(0, 0, 0, .3)
-
-}
-
 .Thumbnail__title {
   margin-top: 10px;
+  display: inline-block;
   color: rgba(255, 255, 255, .4);
-  font-size: 15px;
+  font-size: 14px;
   font-family: 'Roboto';
+  padding: 2px 4px;
 }
+
+.Thumbnail--selected .Thumbnail__image {
+  box-shadow: 0 0 0 2px #2A9FD8, 0 1px 3px rgba(0, 0, 0, .3);
+
+}
+
+.Thumbnail--selected .Thumbnail__title {
+  background-color: #2A9FD8;
+  color: #fff !important;
+  border-radius: 2px;
+
+}
+
+
 
 @keyframes App-logo-spin {
   from { transform: rotate(0deg); }

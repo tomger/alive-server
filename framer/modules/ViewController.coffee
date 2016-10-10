@@ -160,6 +160,7 @@ class ViewController extends Layer
 		# 	if autoInitial? then @show autoInitial
 
 		if options.initialView?
+			@initialView = options.initialView
 			@show options.initialView
 
 		# if options.backButtonName?
@@ -193,7 +194,6 @@ class ViewController extends Layer
 			name = 'pushIn'
 		animProps = @transitions[name]
 
-		console.log(JSON.stringify(animProps), JSON.stringify(animationOptions))
 		# make sure the new layer is inside the viewcontroller
 		newView.parent = @
 		newView.sendToBack()

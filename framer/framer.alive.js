@@ -40,7 +40,8 @@ function loadProject(preloadedCode) {
     _loadFile('linear.sjs'),
     _loadFile('modules/ViewController.coffee'),
     _loadFile('modules/Alive.coffee'),
-    preloadedCode ? _loadString(preloadedCode) : _loadFile('app.coffee?id=' + params.id)
+    preloadedCode !== undefined ? _loadString(preloadedCode) : _loadFile('app.coffee?id=' + params.id),
+    _loadString('AliveCodeReady()')
   ];
   Promise.all(requests)
     .then(function(files){
@@ -49,14 +50,18 @@ function loadProject(preloadedCode) {
         var coffee = [
           files[1],
           files[2],
-          files[3]
+          files[3],
+          files[4]
         ].join('\n');
         if (window.Alive.farmer) {
           window.Alive.farmer.terminate();
         }
         window.Alive.farmer = new Worker("farmer.js");
-        window.Alive.farmer.onmessage = function(e) {
-          success(e.data);
+        window.Alive.farmer.onerror = function(err) {
+          console.error('wassup', err);
+        }
+        window.Alive.farmer.onmessage = function(event) {
+          success(event.data);
           window.Alive.farmer.terminate();
         }
         window.Alive.farmer.postMessage(coffee);
@@ -66,20 +71,20 @@ function loadProject(preloadedCode) {
       try {
         console.timeEnd('compile');
         Framer.Extras.ErrorDisplay.disable();
+        Framer.Extras.ErrorDisplay.enable();
         if (window.Alive.isInitialized) {
           Framer.CurrentContext.reset();
         }
-        eval(js);
+        if (window.Alive.HotspotContext) {
+          window.Alive.HotspotContext.reset();
+          window.Alive.HotspotContext = null;
+        }
         // require('builtin:apollo-sys').eval(js.join(''));
+        eval(js);
       } catch (error) {
-        console.error('Alive: Compile Error', error);
+        console.error('Alive runtime error: ', error);
       }
-      ready();
     });
-}
-
-function ready() {
-
 }
 
 function sendMessage(message) {
@@ -95,9 +100,15 @@ function receiveMessage(event) {
   console.log('received', message.type);
   if (message.type === 'change:app.coffee') {
     window.Alive.initialView = message.view;
+    window.Alive.currentCode = message.code;
     loadProject(message.code);
+  } else if (message.type === 'buildmode') {
+    window.Alive.initialView = message.view;
+    window.Alive.isBuildMode = !!message.value;
+    loadProject(window.Alive.currentCode);
+    document.querySelector('.DeviceBackground').style.backgroundColor = window.Alive.isBuildMode ? '#bbe8ff' : 'white';
   } else if (message.type === 'show') {
-    window.Alive.Navigation.show(window.Alive.layers[message.view]);
+    window.Navigation.show(window.layers[message.view]);
     // views.history.shift()
   }
 }
@@ -107,18 +118,19 @@ document.write("<script src=\"/layers.js?id="+ queryToObject(location.search).id
 
 
 // Framer setup
-
+var deviceScale = 'fit';
+// var deviceScale = 0.5;
 if (DeviceComponent) {
   DeviceComponent.Devices["iphone-6-silver"].deviceImageJP2 = false
 }
 if (window.Framer) {
   window.Framer.Defaults.DeviceView = {
-    "deviceScale":"fit","selectedHand":"","deviceType":"apple-iphone-6s-silver","contentScale":1,"orientation":0
+    "deviceScale":deviceScale,"selectedHand":"","deviceType":"apple-iphone-6s-silver","contentScale":1,"orientation":0
   };
 }
 if (window.Framer) {
   window.Framer.Defaults.DeviceComponent = {
-    "deviceScale":"fit","selectedHand":"","deviceType":"apple-iphone-6s-silver","contentScale":1,"orientation":0
+    "deviceScale":deviceScale,"selectedHand":"","deviceType":"apple-iphone-6s-silver","contentScale":1,"orientation":0
   };
 }
 window.FramerStudioInfo = {
