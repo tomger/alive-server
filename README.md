@@ -19,3 +19,6 @@
 - Enabled more point & click FlowComponent transitions
 - Better autocomplete
 - Point & click drawing of click targets
+
+
+<img src="https://github.com/tomger/alive-server/blob/images/screenshot.png?raw=true">
