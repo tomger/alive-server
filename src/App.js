@@ -243,6 +243,9 @@ class App extends Component {
   }
 
   onChange(newValue) {
+    if (!this.codeTree[this.state.selectedView]) {
+      this.codeTree[this.state.selectedView] = {};
+    }
     this.codeTree[this.state.selectedView].code = newValue;
     this.debouncedUpdatePreview();
     this.debouncedSaveCode();
