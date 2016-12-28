@@ -17,8 +17,11 @@ AliveViewController = () ->
       do (layer) =>
         layer.onLoad = (callback) =>
           layer.onLoadCallback = callback
-  window.Navigation = new ViewController
-    initialView: initialView
+  flow = window.flow = new FlowComponent
+  flow.on Events.TransitionStart, (from, to) =>
+    if to.init?
+      to.init()
+  flow.showNext(initialView)
 
 AliveHotspotEditor = () ->
   hotspotContext = new Framer.Context(name:"Hotspots")
@@ -69,7 +72,7 @@ AliveHotspotEditor = () ->
           sendMessage
             type: 'addLink'
             target: layer.name
-            view: window.Navigation.currentView.name
+            view: window.flow.current.name
     for triggerName, action of layer.actions
       trigger = layers[triggerName]
       if trigger
@@ -88,18 +91,18 @@ AliveHotspotViewer = () ->
       do (layer) =>
         layer.init = () =>
           if not window.Alive.isBuildMode and not layer.isInititalized
-            # console.log('found actions', layer.actions);
             for trigger, action of layer.actions
               if layers[trigger]
                 do (trigger, action) ->
                   layers[trigger].onClick ->
-                    Navigation.push layers[action.view],
-                      transition: action.transition
+                    to = layers[action.view]
+                    flow.showNext(to)
+                    # transition: action.transition
             if layer.onLoadCallback?
               layer.onLoadCallback(layers)
             layer.isInititalized = yes
-
-  window.Navigation.initialView.init()
+  if window.flow.current.init?
+    window.flow.current.init()
 
 
 AliveCodeReady = () ->

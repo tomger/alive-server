@@ -37,8 +37,7 @@ function _loadFile(file) {
 function loadProject(preloadedCode) {
   var params = queryToObject(window.location.search);
   var requests = [
-    _loadFile('linear.sjs'),
-    _loadFile('modules/ViewController.coffee'),
+    // _loadFile('linear.sjs'),
     _loadFile('modules/Alive.coffee'),
     preloadedCode !== undefined ? _loadString(preloadedCode) : _loadFile('app.coffee?id=' + params.id),
     _loadString('AliveCodeReady()')
@@ -48,10 +47,9 @@ function loadProject(preloadedCode) {
       return new Promise(function(success) {
         console.time('compile');
         var coffee = [
+          files[0],
           files[1],
-          files[2],
-          files[3],
-          files[4]
+          files[2]
         ].join('\n');
         if (window.Alive.farmer) {
           window.Alive.farmer.terminate();
@@ -108,7 +106,7 @@ function receiveMessage(event) {
     loadProject(window.Alive.currentCode);
     document.querySelector('.DeviceBackground').style.backgroundColor = window.Alive.isBuildMode ? '#bbe8ff' : 'white';
   } else if (message.type === 'show') {
-    window.Navigation.show(window.layers[message.view]);
+    window.flow.showNext(window.layers[message.view], {animate: false});
     // views.history.shift()
   }
 }
