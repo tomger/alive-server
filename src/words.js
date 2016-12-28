@@ -66,6 +66,9 @@ start options constructor stop reverse copy revert inverse invert emit animating
 ScrollComponent
 updateContent addListener toInspect velocityThreshold animationOptions constructor velocity scrollHorizontal scrollVertical speedX speedY isDragging isMoving propagateEvents directionLock directionLockThreshold content mouseWheelSpeedMultiplier calculateContentFrame scroll scrollX scrollY scrollPoint scrollFrame contentInset direction angle scrollToPoint scrollToTop scrollToLayer scrollToClosestLayer closestContentLayer closestContentLayerForScrollPoint removeListener on off mouseWheelEnabled copy width height visible opacity index clip ignoreEvents x y z scaleX scaleY scaleZ scale skewX skewY skew originX originY perspective rotationX rotationY rotationZ rotation blur brightness saturate hueRotate contrast invert grayscale sepia shadowX shadowY shadowBlur shadowSpread shadowColor backgroundColor color borderColor borderWidth force2d name borderRadius cornerRadius point size frame minX midX maxX minY midY maxY convertPoint canvasFrame screenFrame contentFrame centerFrame center centerX centerY pixelAlign canvasScaleX canvasScaleY screenScaleX screenScaleY screenScaledFrame scaledFrame style computedStyle classList html querySelector querySelectorAll destroy copySingle image addSubLayer removeSubLayer subLayersByName superLayers subLayersAbove subLayersBelow subLayersLeft subLayersRight animate animations animatingProperties animateStop bringToFront sendToBack placeBefore placeBehind draggable once removeAllListeners keys listeners emit
 
+FlowComponent
+flow showNext showPrevious showOverlayCenter showOverlayTop showOverlayRight showOverlayBottom showOverlayLeft transition
+
 PageComponent
 updateContent addListener toInspect constructor originX originY velocityThreshold animationOptions closestPage currentPage previousPage snapToPage snapToNextPage snapToPreviousPage addPage horizontalPageIndex verticalPageIndex velocity scrollHorizontal scrollVertical speedX speedY isDragging isMoving propagateEvents directionLock directionLockThreshold content mouseWheelSpeedMultiplier calculateContentFrame scroll scrollX scrollY scrollPoint scrollFrame contentInset direction angle scrollToPoint scrollToTop scrollToLayer scrollToClosestLayer closestContentLayer closestContentLayerForScrollPoint removeListener on off mouseWheelEnabled copy width height visible opacity index clip ignoreEvents x y z scaleX scaleY scaleZ scale skewX skewY skew perspective rotationX rotationY rotationZ rotation blur brightness saturate hueRotate contrast invert grayscale sepia shadowX shadowY shadowBlur shadowSpread shadowColor backgroundColor color borderColor borderWidth force2d name borderRadius cornerRadius point size frame minX midX maxX minY midY maxY convertPoint canvasFrame screenFrame contentFrame centerFrame center centerX centerY pixelAlign canvasScaleX canvasScaleY screenScaleX screenScaleY screenScaledFrame scaledFrame style computedStyle classList html querySelector querySelectorAll destroy copySingle image addSubLayer removeSubLayer subLayersByName superLayers subLayersAbove subLayersBelow subLayersLeft subLayersRight animate animations animatingProperties animateStop bringToFront sendToBack placeBefore placeBehind draggable once removeAllListeners keys listeners emit
 
@@ -171,28 +174,5 @@ onChange
 onValueChange
 
 Align
-
-switchInstant
-fadeIn
-zoomIn
-zoomOut
-moveInRight
-pushIn
-moveInLeft
-pushInRight
-pushInLeft
-pushOut
-pushOutRight
-pushOutLeft
-slideIn
-slideInUp
-slideInRight
-slideInDown
-slideInLeft
-slideOut
-slideOutUp
-slideOutRight
-slideOutDown
-slideOutLeft
 
 `;
