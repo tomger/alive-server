@@ -1,6 +1,6 @@
 # Alive Server
 
-**Alive** is an open source browser-based Framer editor for rapid prototyping. A [Sketch plugin](https://github.com/tomger/alive) makes it easy to upload typical Framer layers to the server.
+**Alive** is an open source browser-based [Framer](https://github.com/koenbok/Framer/) editor for rapid prototyping. A [Sketch plugin](https://github.com/tomger/alive) makes it easy to upload typical Framer layers to the server.
 
 ## Get Started
 
