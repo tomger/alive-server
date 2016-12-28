@@ -9,6 +9,7 @@
 - Run `npm start` to start the web server and the "Create react app" live environment.
 - Install the Sketch plugin to upload an artboard to your local server. The plugin will open a specific project on **http://localhost:3001/edit/[sketch page id]** automatically.
 
+If that sounds scary, check out [this screencast](https://vimeo.com/185270726) of an older version of the web editor.
 
 ## Contribute
 
