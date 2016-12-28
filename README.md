@@ -16,9 +16,9 @@
 
 - **Figma** asset syncing (as background cloud service)
 - Authentication / safer sharing
-- Enabled more point & click FlowComponent transitions
-- Better autocomplete
+- More point & click FlowComponent transitions
+- Improved autocomplete
 - Point & click drawing of click targets
 
-
+<br/>
 <img src="https://github.com/tomger/alive-server/blob/images/screenshot.png?raw=true">
